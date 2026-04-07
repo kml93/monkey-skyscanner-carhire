@@ -4,7 +4,6 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import monkey from 'vite-plugin-monkey';
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -12,9 +11,13 @@ export default defineConfig({
     monkey({
       entry: 'src/main.tsx',
       userscript: {
-        icon: 'https://vitejs.dev/logo.svg',
-        namespace: 'npm/vite-plugin-monkey',
-        match: ['https://www.google.com/'],
+        author: `Jacky Daniel's`,
+        name: 'Skyscanner - Car Rental - Dashboard',
+        icon: '[https://vitejs.dev/logo.svg](https://vitejs.dev/logo.svg)',
+        namespace: 'kml93/skyscanner-car_rental',
+        include: ['*://*skyscanner.tld/carhire/results/*'],
+        // grant: [],
+        // 'run-at': 'document-idle',
       },
     }),
   ],
