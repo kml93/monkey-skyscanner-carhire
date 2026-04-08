@@ -26,13 +26,13 @@ export function AutoConfigTab({ config, onUpdate, onReset }: AutoConfigTabProps)
   return (
     <div className="flex flex-col gap-1 py-2">
       <p className="text-xs text-muted-foreground px-1 mb-2">
-        Ces paramètres s'appliquent automatiquement à chaque chargement de page.
+        These settings apply automatically on every page load.
       </p>
 
       <ConfigRow
         icon={<ArrowsDownUp weight="duotone" className="h-4 w-4" />}
-        label="Tri automatique"
-        description={`Forcer le tri "Le moins cher" à l'ouverture`}
+        label="Auto Sort"
+        description={`Force "Cheapest" sort on load`}
         checked={config.sortCheapest}
         onChange={(v) => onUpdate({ sortCheapest: v })}
       />
@@ -41,8 +41,8 @@ export function AutoConfigTab({ config, onUpdate, onReset }: AutoConfigTabProps)
 
       <ConfigRow
         icon={<FolderSimpleMinus weight="duotone" className="h-4 w-4" />}
-        label="Pliage des accordéons"
-        description="Fermer tous les filtres sauf Prestataire"
+        label="Accordion Folding"
+        description="Close all filters except Providers"
         checked={config.foldAccordions}
         onChange={(v) => onUpdate({ foldAccordions: v })}
       />
@@ -51,8 +51,8 @@ export function AutoConfigTab({ config, onUpdate, onReset }: AutoConfigTabProps)
 
       <ConfigRow
         icon={<ArrowsOutSimple weight="duotone" className="h-4 w-4" />}
-        label="Expansion fournisseurs"
-        description="Déplie et coche tous les fournisseurs au chargement"
+        label="Supplier Expansion"
+        description="Expand and check all suppliers on load"
         checked={config.expandAllSuppliers}
         onChange={(v) => onUpdate({ expandAllSuppliers: v })}
       />
@@ -62,7 +62,7 @@ export function AutoConfigTab({ config, onUpdate, onReset }: AutoConfigTabProps)
       <ConfigRow
         icon={<LockSimple weight="duotone" className="h-4 w-4" />}
         label="Scroll Lock"
-        description="Bloquer le scroll automatique de Skyscanner"
+        description="Block Skyscanner's auto-scroll behavior"
         checked={config.scrollLock}
         onChange={(v) => onUpdate({ scrollLock: v })}
       />
@@ -72,7 +72,7 @@ export function AutoConfigTab({ config, onUpdate, onReset }: AutoConfigTabProps)
       <ConfigRow
         icon={<Lightning weight="duotone" className="h-4 w-4" />}
         label="Auto-Apply"
-        description="Appliquer les exclusions au chargement (sans ouvrir le Dashboard)"
+        description="Apply exclusions on load (without opening Dashboard)"
         checked={config.autoApply}
         onChange={(v) => onUpdate({ autoApply: v })}
       />
@@ -88,7 +88,7 @@ export function AutoConfigTab({ config, onUpdate, onReset }: AutoConfigTabProps)
           underline underline-offset-2 self-start
         "
       >
-        Réinitialiser les paramètres par défaut
+        Reset to default settings
       </button>
     </div>
   );

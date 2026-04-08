@@ -101,11 +101,11 @@ export function Dashboard({
               Skyscanner Dashboard
             </DialogTitle>
             <DialogDescription className="sr-only">
-              Panneau de contrôle pour les filtres Skyscanner et la configuration automatique.
+              Control panel for Skyscanner filters and automatic configuration.
             </DialogDescription>
             {excludedCount > 0 && (
               <span className="text-xs font-mono text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">
-                {excludedCount} exclu{excludedCount > 1 ? 's' : ''}
+                {excludedCount} excluded
               </span>
             )}
           </div>
@@ -114,7 +114,7 @@ export function Dashboard({
             size="icon"
             onClick={handleClose}
             className="h-8 w-8 rounded-lg"
-            aria-label="Fermer le dashboard"
+            aria-label="Close dashboard"
           >
             <X weight="bold" className="h-4 w-4" />
           </Button>
@@ -133,19 +133,19 @@ export function Dashboard({
               value="suppliers"
               className="data-active:border-b-2 data-active:border-primary rounded-none pb-2.5 pt-3 px-1 mr-6 text-sm"
             >
-              Fournisseurs
+              Suppliers
             </TabsTrigger>
             <TabsTrigger
               value="config"
               className="data-active:border-b-2 data-active:border-primary rounded-none pb-2.5 pt-3 px-1 mr-6 text-sm"
             >
-              Configuration
+              Config
             </TabsTrigger>
             <TabsTrigger
               value="stats"
               className="data-active:border-b-2 data-active:border-primary rounded-none pb-2.5 pt-3 px-1 mr-6 text-sm"
             >
-              Statistiques
+              Stats
             </TabsTrigger>
           </TabsList>
 
@@ -192,7 +192,7 @@ export function Dashboard({
             onClick={handleClose}
             className="text-xs h-8"
           >
-            Appliquer & Fermer
+            Apply & Close
           </Button>
         </div>
       </DialogContent>

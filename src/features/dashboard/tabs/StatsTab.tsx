@@ -43,30 +43,30 @@ export function StatsTab({ suppliers, preferences, totalResults }: StatsTabProps
       <div className="grid grid-cols-2 gap-2.5">
         <MetricCard
           icon={<UsersThree weight="duotone" className="h-4 w-4" />}
-          label="Fournisseurs"
+          label="Suppliers"
           value={`${includedCount}/${totalSuppliers}`}
-          sublabel={`${excludedCount} exclus`}
+          sublabel={`${excludedCount} excluded`}
           color="blue"
         />
         <MetricCard
           icon={<ChartBar weight="duotone" className="h-4 w-4" />}
-          label="Résultats"
-          value={totalResults > 0 ? totalResults.toLocaleString('fr-FR') : '—'}
-          sublabel="total disponibles"
+          label="Results"
+          value={totalResults > 0 ? totalResults.toLocaleString('en-US') : '—'}
+          sublabel="total available"
           color="purple"
         />
         <MetricCard
           icon={<CurrencyEur weight="duotone" className="h-4 w-4" />}
-          label="Meilleur prix"
+          label="Best Price"
           value={cheapestPrice > 0 ? `${cheapestPrice} €` : '—'}
           sublabel={cheapestIncluded?.name ?? '—'}
           color="emerald"
         />
         <MetricCard
           icon={<Clock weight="duotone" className="h-4 w-4" />}
-          label="Temps gagné"
+          label="Time Saved"
           value={`~${Math.max(1, excludedCount * 2)}s`}
-          sublabel="par recherche"
+          sublabel="per search"
           color="amber"
         />
       </div>
@@ -77,12 +77,12 @@ export function StatsTab({ suppliers, preferences, totalResults }: StatsTabProps
       <div className="space-y-2 px-1">
         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
           <FunnelSimple className="h-3 w-3" />
-          Résumé des filtres
+          Filter Summary
         </h4>
 
         {excludedCount === 0 ? (
           <p className="text-xs text-muted-foreground">
-            Aucun fournisseur exclu. Tous les résultats sont affichés.
+            No excluded suppliers. All results are shown.
           </p>
         ) : (
           <div className="flex flex-wrap gap-1.5">
@@ -145,7 +145,7 @@ function MetricCard({ icon, label, value, sublabel, color }: MetricCardProps) {
 // Utility
 // ---------------------------------------------------------------------------
 
-/** Extracts numeric price from a label like "à partir de 147 €". */
+/** Extracts numeric price from a label like "from 147 €". */
 function extractPrice(label: string): number {
   const match = label.match(/(\d+)/);
   return match ? parseInt(match[1], 10) : Infinity;

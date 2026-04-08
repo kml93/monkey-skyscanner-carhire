@@ -14,6 +14,7 @@
  */
 
 import { DomObserver } from './DomObserver';
+import { Logger } from './Logger';
 import { SELECTORS } from './selectors';
 import type { AutoConfig } from './types';
 
@@ -40,9 +41,9 @@ export class UIBootController {
       if (config.foldAccordions) this.foldAccordions();
 
       this.booted = true;
-      console.info('[SkyScannerDashboard] Boot sequence completed.');
+      Logger.info('Boot sequence completed.');
     } catch (error) {
-      console.error('[SkyScannerDashboard] Boot sequence failed:', error);
+      Logger.error('Boot sequence failed:', error);
     }
   }
 
@@ -59,70 +60,61 @@ export class UIBootController {
   // ── Sort ───────────────────────────────────────────────────────────────
 
   /**
-   * Forces the sort dropdown to "Le moins cher" if not already selected.
+   * Forces the sort dropdown to "Cheapest" if not already selected.
    * Dispatches a native `change` event to trigger React's state update.
    */
   private static forceCheapestSort(): void {
-    const select = document.querySelector<HTMLSelectElement>(
-      SELECTORS.sort.dropdown,
-    ) ?? document.querySelector<HTMLSelectElement>(
-      SELECTORS.sort.dropdownByTestId,
-    );
+    const select = document.querySelector<HTMLSelectElement>(SELECTORS.sort.dropdown) ?? document.querySelector<HTMLSelectElement>(SELECTORS.sort.dropdownByTestId);
 
     if (!select) {
-      console.warn('[SkyScannerDashboard] Sort dropdown not found.');
+      Logger.warn('Sort dropdown not found.');
       return;
     }
 
     if (select.value === SELECTORS.sortValues.cheapest) return;
 
     // Set value and dispatch native change event for React
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-      HTMLSelectElement.prototype,
-      'value',
-    )?.set;
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set;
 
     nativeInputValueSetter?.call(select, SELECTORS.sortValues.cheapest);
     select.dispatchEvent(new Event('change', { bubbles: true }));
 
-    console.info('[SkyScannerDashboard] Sort forced to "Le moins cher".');
+    Logger.info('Sort forced to "Cheapest".');
   }
 
   // ── Expand Suppliers ───────────────────────────────────────────────────
 
   /**
-   * Clicks "Tout sélectionner" which both:
+   * Clicks "Select all" (or French "Tout sélectionner") which both:
    * - Expands the full list (popular + all suppliers)
    * - Checks all supplier checkboxes
    *
    * Then waits for the full list to render before proceeding.
    */
   private static async expandAllSuppliers(): Promise<void> {
-    // Find "Tout sélectionner" button by text content
-    const filterButtons = document.querySelectorAll<HTMLButtonElement>(
-      SELECTORS.buttons.filterActionWildcard,
-    );
+    // Find "Select all" / "Tout sélectionner" button by text content
+    const filterButtons = document.querySelectorAll<HTMLButtonElement>(SELECTORS.buttons.filterActionWildcard);
 
+    const selectAllTexts = ['Tout sélectionner', 'Select all'];
     let selectAllBtn: HTMLButtonElement | null = null;
     for (const btn of filterButtons) {
-      if (btn.textContent?.trim() === 'Tout sélectionner') {
+      const text = btn.textContent?.trim() ?? '';
+      if (selectAllTexts.includes(text)) {
         selectAllBtn = btn;
         break;
       }
     }
 
     if (!selectAllBtn) {
-      console.warn('[SkyScannerDashboard] "Tout sélectionner" button not found.');
-      // Fallback: try just "Afficher tous les fournisseurs"
-      const showAllBtn = document.querySelector<HTMLButtonElement>(
-        SELECTORS.buttons.showAllSuppliers,
-      );
+      Logger.warn('"Select all" button not found.');
+      // Fallback: try just "Show all suppliers" / "Afficher tous les fournisseurs"
+      const showAllBtn = document.querySelector<HTMLButtonElement>(SELECTORS.buttons.showAllSuppliers);
       showAllBtn?.click();
       return;
     }
 
     selectAllBtn.click();
-    console.info('[SkyScannerDashboard] Clicked "Tout sélectionner" (expand + check all).');
+    Logger.info('Clicked "Select all" (expand + check all).');
 
     // Wait for the supplier list to finish rendering
     await this.delay(800);
@@ -131,19 +123,17 @@ export class UIBootController {
   // ── Fold Accordions ────────────────────────────────────────────────────
 
   /**
-   * Collapses all expanded accordion sections EXCEPT "Prestataire".
-   * Also ignores footer-level accordions (Explorer, Entreprise, etc.).
+   * Collapses all expanded accordion sections EXCEPT "Provider" / "Prestataire".
+   * Also ignores footer-level accordions.
    */
   private static foldAccordions(): void {
     const sidebarContainer = document.querySelector(SELECTORS.sidebar.container);
     if (!sidebarContainer) return;
 
     // Only target accordion buttons WITHIN the sidebar (not footer)
-    const accordionButtons = sidebarContainer.querySelectorAll<HTMLButtonElement>(
-      SELECTORS.accordion.toggleButton,
-    );
+    const accordionButtons = sidebarContainer.querySelectorAll<HTMLButtonElement>(SELECTORS.accordion.toggleButton);
 
-    const keepOpen = SELECTORS.accordionLabels.prestataire;
+    const keepOpenLabels = SELECTORS.accordionLabels.provider;
     const footerLabels = SELECTORS.accordionLabels.footerSections;
 
     let foldedCount = 0;
@@ -154,8 +144,8 @@ export class UIBootController {
 
       // Skip if already collapsed
       if (!isExpanded) continue;
-      // Skip the "Prestataire" section — keep it open
-      if (label === keepOpen) continue;
+      // Skip the provider section — keep it open
+      if ((keepOpenLabels as readonly string[]).includes(label)) continue;
       // Skip footer-level sections
       if ((footerLabels as readonly string[]).includes(label)) continue;
 
@@ -164,7 +154,7 @@ export class UIBootController {
     }
 
     if (foldedCount > 0) {
-      console.info(`[SkyScannerDashboard] Folded ${foldedCount} accordion section(s).`);
+      Logger.info(`Folded ${foldedCount} accordion section(s).`);
     }
   }
 

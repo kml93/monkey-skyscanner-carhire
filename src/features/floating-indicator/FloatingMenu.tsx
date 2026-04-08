@@ -66,7 +66,7 @@ export function FloatingMenu({
           size="icon"
           className="h-6 w-6"
           onClick={onClose}
-          aria-label="Fermer le menu"
+          aria-label="Close menu"
         >
           <X weight="bold" className="h-3.5 w-3.5" />
         </Button>
@@ -75,7 +75,7 @@ export function FloatingMenu({
       {/* Quick Stats */}
       <div className="px-4 py-2 bg-muted/50">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Fournisseurs exclus</span>
+          <span>Excluded suppliers</span>
           <span className="font-mono font-semibold text-foreground">
             {excludedCount}/{totalSuppliers}
           </span>
@@ -89,21 +89,21 @@ export function FloatingMenu({
         <MenuButton
           icon={<Faders weight="duotone" className="h-4 w-4" />}
           label="Dashboard"
-          description="Gérer les fournisseurs"
+          description="Manage suppliers"
           onClick={() => handleDashboard('suppliers')}
         />
 
         <MenuButton
           icon={<GearSix weight="duotone" className="h-4 w-4" />}
           label="Configuration"
-          description="Paramètres automatiques"
+          description="Automatic settings"
           onClick={() => handleDashboard('config')}
         />
 
         <MenuButton
           icon={<ChartBar weight="duotone" className="h-4 w-4" />}
-          label="Statistiques"
-          description="Métriques & insights"
+          label="Statistics"
+          description="Metrics & insights"
           onClick={() => handleDashboard('stats')}
         />
 
@@ -114,8 +114,8 @@ export function FloatingMenu({
             ? <Sun weight="duotone" className="h-4 w-4" />
             : <Moon weight="duotone" className="h-4 w-4" />
           }
-          label={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
-          description="Basculer le thème"
+          label={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          description="Toggle theme"
           onClick={onToggleTheme}
         />
       </div>

@@ -8,6 +8,7 @@
  * Single Responsibility: only detects DOM/navigation changes and emits callbacks.
  */
 
+import { Logger } from './Logger';
 import { SELECTORS } from './selectors';
 
 type NavigationCallback = () => void;
@@ -96,7 +97,7 @@ export class DomObserver {
       try {
         callback();
       } catch (error) {
-        console.error('[SkyScannerDashboard] DomObserver callback error:', error);
+        Logger.error('DomObserver callback error:', error);
       }
     }
   }
@@ -130,7 +131,7 @@ export class DomObserver {
 
         if (Date.now() - startTime > timeoutMs) {
           clearInterval(poll);
-          reject(new Error(`[SkyScannerDashboard] Element not found: ${selector} (timeout: ${timeoutMs}ms)`));
+          reject(new Error(`Element not found: ${selector} (timeout: ${timeoutMs}ms)`));
         }
       }, intervalMs);
     });

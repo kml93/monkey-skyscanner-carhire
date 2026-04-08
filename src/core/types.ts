@@ -15,7 +15,7 @@ export interface Supplier {
   readonly id: string;
   /** Display name (e.g. "Eren Rent a Car"). */
   readonly name: string;
-  /** Minimum price label (e.g. "à partir de 147 €"), raw text. */
+  /** Minimum price label (e.g. "from 147 €"), raw text. */
   readonly priceLabel: string;
   /** Numerical price extracted from priceLabel for sorting. */
   readonly price: number;
@@ -42,11 +42,11 @@ export interface SupplierPreference {
 
 /** Toggleable auto-configuration options persisted across sessions. */
 export interface AutoConfig {
-  /** Force sort to "Le moins cher" on page load. */
+  /** Force sort to "Cheapest" on page load. */
   sortCheapest: boolean;
-  /** Collapse all accordion sections except "Prestataire" on page load. */
+  /** Collapse all accordion sections except "Providers" on page load. */
   foldAccordions: boolean;
-  /** Click "Afficher tous les fournisseurs" on page load. */
+  /** Click "Show all suppliers" on page load. */
   expandAllSuppliers: boolean;
   /** Intercept programmatic scroll globally. */
   scrollLock: boolean;

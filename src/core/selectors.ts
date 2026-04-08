@@ -69,11 +69,11 @@ export const SELECTORS = {
     recommended: 'RECOMMENDED_SORT',
   },
 
-  // ── Accordion Section Labels (French) ──────────────────────────────────
+  // ── Accordion Section Labels (Support both FR and EN) ──────────────────
   accordionLabels: {
     /** The supplier section label — this one stays open */
-    prestataire: 'Prestataire',
+    provider: ['Prestataire', 'Provider'],
     /** Footer accordion labels — not part of filters, should be ignored */
-    footerSections: ['Explorer', 'Entreprise', 'Partenaires', 'Voyages', 'Sites internationaux'],
+    footerSections: ['Explorer', 'Explore', 'Entreprise', 'Company', 'Partenaires', 'Partners', 'Voyages', 'Trips', 'Sites internationaux', 'International sites'],
   },
 } as const;

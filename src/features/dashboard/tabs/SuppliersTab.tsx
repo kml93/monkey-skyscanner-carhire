@@ -102,10 +102,10 @@ export function SuppliersTab({
       <div className="flex items-center justify-between px-1 py-2">
         <div className="flex items-center gap-4">
           <span className="text-xs text-muted-foreground">
-            <span className="font-mono font-semibold text-foreground">{suppliers.length}</span> fournisseurs
+            <span className="font-mono font-semibold text-foreground">{suppliers.length}</span> suppliers
           </span>
           <span className="text-xs text-muted-foreground">
-            <span className="font-mono font-semibold text-destructive">{excludedCount}</span> exclus
+            <span className="font-mono font-semibold text-destructive">{excludedCount}</span> excluded
           </span>
         </div>
 
@@ -129,7 +129,7 @@ export function SuppliersTab({
           <MagnifyingGlass className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Rechercher un fournisseur..."
+            placeholder="Search supplier..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="
@@ -146,21 +146,21 @@ export function SuppliersTab({
           <FilterButton
             active={filterMode === 'all'}
             onClick={() => setFilterMode('all')}
-            title="Tous les fournisseurs"
+            title="All suppliers"
           >
             <FunnelSimple className="h-3.5 w-3.5" />
           </FilterButton>
           <FilterButton
             active={filterMode === 'included'}
             onClick={() => setFilterMode('included')}
-            title="Fournisseurs inclus"
+            title="Included suppliers"
           >
             <ShieldCheck className="h-3.5 w-3.5" />
           </FilterButton>
           <FilterButton
             active={filterMode === 'excluded'}
             onClick={() => setFilterMode('excluded')}
-            title="Fournisseurs exclus"
+            title="Excluded suppliers"
           >
             <Prohibit className="h-3.5 w-3.5" />
           </FilterButton>
@@ -174,10 +174,10 @@ export function SuppliersTab({
             <SelectValue />
           </SelectTrigger>
           <SelectContent side="bottom" align="end" className="text-[10px]">
-            <SelectItem value="price-asc">Prix ↑</SelectItem>
-            <SelectItem value="price-desc">Prix ↓</SelectItem>
-            <SelectItem value="name-asc">Nom A-Z</SelectItem>
-            <SelectItem value="name-desc">Nom Z-A</SelectItem>
+            <SelectItem value="price-asc">Price ↑</SelectItem>
+            <SelectItem value="price-desc">Price ↓</SelectItem>
+            <SelectItem value="name-asc">Name A-Z</SelectItem>
+            <SelectItem value="name-desc">Name Z-A</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -193,7 +193,7 @@ export function SuppliersTab({
           className="text-xs h-7"
         >
           <Prohibit className="h-3 w-3 mr-1" />
-          Tout exclure
+          Exclude all
         </Button>
         <Button
           variant="outline"
@@ -202,7 +202,7 @@ export function SuppliersTab({
           className="text-xs h-7"
         >
           <ShieldCheck className="h-3 w-3 mr-1" />
-          Tout inclure
+          Include all
         </Button>
       </div>
 
@@ -214,13 +214,13 @@ export function SuppliersTab({
           {loading && (
             <div className="flex items-center justify-center py-8 text-xs text-muted-foreground">
               <ArrowsClockwise className="h-4 w-4 mr-2 animate-spin" />
-              Chargement des fournisseurs...
+              Loading suppliers...
             </div>
           )}
 
           {!loading && filteredSuppliers.length === 0 && (
             <div className="text-center py-8 text-xs text-muted-foreground">
-              Aucun fournisseur trouvé.
+              No suppliers found.
             </div>
           )}
 

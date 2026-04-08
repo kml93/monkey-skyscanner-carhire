@@ -12,6 +12,7 @@
  * Single Responsibility: only handles the mechanical DOM checkbox manipulation.
  */
 
+import { Logger } from './Logger';
 import { SELECTORS } from './selectors';
 import type { FilterStrategy, Supplier, SupplierPreference } from './types';
 
@@ -24,7 +25,7 @@ import type { FilterStrategy, Supplier, SupplierPreference } from './types';
  * Returns the IDs that should be unchecked.
  */
 export class ExclusionStrategy implements FilterStrategy {
-  readonly label = 'Exclusion (tout inclus, on exclut)';
+  readonly label = 'Exclusion (all included, exclude specific)';
 
   computeUncheckedIds(
     _allSupplierIds: string[],
@@ -73,14 +74,14 @@ export class FilterEngine {
     const allSupplierIds = this.scrapeSupplierIds();
 
     if (allSupplierIds.length === 0) {
-      console.warn('[SkyScannerDashboard] No suppliers found in DOM.');
+      Logger.warn('No suppliers found in DOM.');
       return;
     }
 
     const idsToUncheck = this.strategy.computeUncheckedIds(allSupplierIds, preferences);
 
     if (idsToUncheck.length === 0) {
-      console.info('[SkyScannerDashboard] No suppliers to exclude.');
+      Logger.info('No suppliers to exclude.');
       return;
     }
 
@@ -101,9 +102,7 @@ export class FilterEngine {
         uncheckedCount++;
       }
 
-      console.info(
-        `[SkyScannerDashboard] Batch excluded ${uncheckedCount} supplier(s).`,
-      );
+      Logger.info(`Batch excluded ${uncheckedCount} supplier(s).`);
     });
   }
 

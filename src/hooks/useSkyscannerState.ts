@@ -29,7 +29,7 @@ export function useSkyscannerState() {
 
       // Try to read total result count from the banner text
       const bannerText = document.querySelector('[data-testid="sort-by-banner"]')?.textContent ?? '';
-      const match = bannerText.match(/(\d+)\s*résultat/);
+      const match = bannerText.match(/(\d+)\s*(result|résultat)/i);
       if (match) {
         setTotalResults(parseInt(match[1], 10));
       }
