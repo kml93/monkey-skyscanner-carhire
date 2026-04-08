@@ -17,9 +17,14 @@ export interface Supplier {
   readonly name: string;
   /** Minimum price label (e.g. "à partir de 147 €"), raw text. */
   readonly priceLabel: string;
+  /** Numerical price extracted from priceLabel for sorting. */
+  readonly price: number;
   /** Whether the native checkbox is currently checked. */
   checked: boolean;
 }
+
+/** Available sorting options for the suppliers list. */
+export type SortOption = 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
 
 /** Persisted user preference for a single supplier. */
 export interface SupplierPreference {

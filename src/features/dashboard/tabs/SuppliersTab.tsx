@@ -17,8 +17,15 @@ import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import type { Supplier, SupplierPreference } from '@/core/types';
+import type { SortOption, Supplier, SupplierPreference } from '@/core/types';
 import { SupplierCard } from '../components/SupplierCard';
 
 interface SuppliersTabProps {
@@ -42,6 +49,7 @@ export function SuppliersTab({
 }: SuppliersTabProps) {
   const [search, setSearch] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'excluded' | 'included'>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('price-asc');
 
   // Filter and search suppliers
   const filteredSuppliers = useMemo(() => {
@@ -65,8 +73,24 @@ export function SuppliersTab({
       });
     }
 
+    // Apply sorting (copy to avoid mutating source if it's not a new array)
+    result = [...result].sort((a, b) => {
+      switch (sortOption) {
+        case 'price-asc':
+          return a.price - b.price;
+        case 'price-desc':
+          return b.price - a.price;
+        case 'name-asc':
+          return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+        case 'name-desc':
+          return b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: 'base' });
+        default:
+          return 0;
+      }
+    });
+
     return result;
-  }, [suppliers, search, filterMode, preferences]);
+  }, [suppliers, search, filterMode, preferences, sortOption]);
 
   const excludedCount = suppliers.filter(
     (s) => preferences.get(s.id)?.excluded,
@@ -122,22 +146,40 @@ export function SuppliersTab({
           <FilterButton
             active={filterMode === 'all'}
             onClick={() => setFilterMode('all')}
+            title="Tous les fournisseurs"
           >
             <FunnelSimple className="h-3.5 w-3.5" />
           </FilterButton>
           <FilterButton
             active={filterMode === 'included'}
             onClick={() => setFilterMode('included')}
+            title="Fournisseurs inclus"
           >
             <ShieldCheck className="h-3.5 w-3.5" />
           </FilterButton>
           <FilterButton
             active={filterMode === 'excluded'}
             onClick={() => setFilterMode('excluded')}
+            title="Fournisseurs exclus"
           >
             <Prohibit className="h-3.5 w-3.5" />
           </FilterButton>
         </div>
+
+        <Select
+          value={sortOption}
+          onValueChange={(value) => setSortOption(value as SortOption)}
+        >
+          <SelectTrigger className="w-[85px] h-8 px-2 text-[10px] font-medium">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent side="bottom" align="end" className="text-[10px]">
+            <SelectItem value="price-asc">Prix ↑</SelectItem>
+            <SelectItem value="price-desc">Prix ↓</SelectItem>
+            <SelectItem value="name-asc">Nom A-Z</SelectItem>
+            <SelectItem value="name-desc">Nom Z-A</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Separator />
@@ -207,13 +249,15 @@ interface FilterButtonProps {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  title?: string;
 }
 
-function FilterButton({ active, onClick, children }: FilterButtonProps) {
+function FilterButton({ active, onClick, children, title }: FilterButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={title}
       className={`
         h-full px-2 text-xs transition-colors cursor-pointer
         ${active

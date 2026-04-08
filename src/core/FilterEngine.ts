@@ -134,11 +134,16 @@ export class FilterEngine {
       // Get name and price from dedicated data-testid elements
       const nameEl = document.querySelector(SELECTORS.supplier.name(id));
       const priceEl = document.querySelector(SELECTORS.supplier.price(id));
+      const priceLabel = priceEl?.textContent?.trim() ?? '';
+
+      // Parse numerical price for sorting (remove currency symbols, spaces, etc.)
+      const price = parseInt(priceLabel.replace(/[^\d]/g, ''), 10) || 0;
 
       suppliers.push({
         id,
         name: nameEl?.textContent?.trim() ?? `Supplier #${id}`,
-        priceLabel: priceEl?.textContent?.trim() ?? '',
+        priceLabel,
+        price,
         checked: cb.checked,
       });
     }
