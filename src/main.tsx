@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import App from './App';
+import { ShadowPortalProvider } from './contexts/ShadowPortalContext';
 import './fonts.css';
 import styleString from './index.css?inline';
 
@@ -53,11 +54,19 @@ class SkyScannerApplication {
     const appContainer = document.createElement('div');
     this.hostInstance.shadowRoot.appendChild(appContainer);
 
-    // 4. React Rendering (Create Root)
+    // 4. Portals Container (Base UI portals render here instead of document.body)
+    //    Kept separate from appContainer so portals never clip inside the React tree
+    const portalsContainer = document.createElement('div');
+    portalsContainer.setAttribute('data-slot', 'portals');
+    this.hostInstance.shadowRoot.appendChild(portalsContainer);
+
+    // 5. React Rendering (Create Root)
     this.root = createRoot(appContainer);
     this.root.render(
       <StrictMode>
-        <App />
+        <ShadowPortalProvider container={portalsContainer}>
+          <App />
+        </ShadowPortalProvider>
       </StrictMode>,
     );
   }

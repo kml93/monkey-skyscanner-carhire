@@ -10,14 +10,20 @@ export default defineConfig({
     tailwindcss(),
     monkey({
       entry: 'src/main.tsx',
+      server: {
+        mountGmApi: true,
+      },
       userscript: {
         author: `Jacky Daniel's`,
         name: 'Skyscanner - Car Rental - Dashboard',
-        icon: '[https://vitejs.dev/logo.svg](https://vitejs.dev/logo.svg)',
+        icon: 'https://www.skyscanner.fr/favicon.ico',
         namespace: 'kml93/skyscanner-car_rental',
-        include: ['*://*skyscanner.tld/carhire/results/*'],
-        // grant: [],
-        // 'run-at': 'document-idle',
+        include: [
+          '*://*.skyscanner.*/carhire/results/*',
+          // '*://*.skyscanner.tld/carhire/results/*',
+        ],
+        grant: ['GM_setValue', 'GM_getValue', 'GM_addValueChangeListener', 'GM_removeValueChangeListener', 'GM_addStyle'],
+        'run-at': 'document-idle',
       },
     }),
   ],
