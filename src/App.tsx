@@ -55,24 +55,21 @@ const App = () => {
   }, [config.scrollLock]);
 
   useEffect(() => {
-    // Run boot sequence
-    UIBootController.boot(config).then(() => {
-      // Auto-apply exclusions if enabled
+    // Run boot sequence with new callback logic
+    UIBootController.boot(config, () => {
       if (config.autoApply) {
-        // Small delay to let the DOM settle after boot
-        setTimeout(() => {
-          FilterEngine.apply(preferences);
-        }, 500);
+        FilterEngine.apply(preferences);
       }
+      refreshSuppliers();
     });
 
-    // Watch for SPA navigation and re-boot
+    // Watch for SPA navigation (URL changes) and re-boot
     DomObserver.start();
     const unsub = DomObserver.onNavigate(() => {
       UIBootController.reset();
-      UIBootController.boot(config).then(() => {
+      UIBootController.boot(config, () => {
         if (config.autoApply) {
-          setTimeout(() => FilterEngine.apply(preferences), 500);
+          FilterEngine.apply(preferences);
         }
         refreshSuppliers();
       });

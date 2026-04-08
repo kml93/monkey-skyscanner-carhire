@@ -20,20 +20,22 @@ import type { AutoConfig } from './types';
 
 export class UIBootController {
   private static booted = false;
+  private static isWaiting = false;
 
   /**
    * Runs the full boot sequence.
-   * Idempotent — will not re-run if already completed.
+   * Idempotent — will not re-run if already completed or waiting.
    */
-  static async boot(config: AutoConfig): Promise<void> {
-    if (this.booted) return;
+  static async boot(config: AutoConfig, onReadyCallback?: () => void): Promise<void> {
+    if (this.booted || this.isWaiting) return;
+    this.isWaiting = true;
 
     try {
       // Wait for the sidebar to be present in the DOM
       await DomObserver.waitForElement(SELECTORS.sidebar.container, 15_000);
 
-      // Small delay to let Skyscanner fully hydrate React
-      await this.delay(1_500);
+      // Wait for all loaders/spinners to disappear
+      await this.waitTillReady();
 
       // Execute all preparations in rapid succession
       if (config.sortCheapest) this.forceCheapestSort();
@@ -41,8 +43,14 @@ export class UIBootController {
       if (config.foldAccordions) this.foldAccordions();
 
       this.booted = true;
+      this.isWaiting = false;
       Logger.info('Boot sequence completed.');
+
+      if (onReadyCallback) {
+        onReadyCallback();
+      }
     } catch (error) {
+      this.isWaiting = false;
       Logger.error('Boot sequence failed:', error);
     }
   }
@@ -50,11 +58,43 @@ export class UIBootController {
   /** Resets boot state to allow re-execution (e.g. after SPA navigation). */
   static reset(): void {
     this.booted = false;
+    this.isWaiting = false;
   }
 
   /** Returns whether the boot sequence has completed. */
   static hasBooted(): boolean {
     return this.booted;
+  }
+
+  // ── Wait Logic ─────────────────────────────────────────────────────────
+
+  /**
+   * Waits for all Skyscanner loading indicators to disappear from the DOM.
+   */
+  private static waitTillReady(): Promise<void> {
+    return new Promise((resolve) => {
+      const checkDelay = 200;
+      let stabilityCount = 0;
+      const requiredStability = 2; // Needs to be clean for 400ms
+
+      const interval = setInterval(() => {
+        const hasProgressBar = !!document.querySelector(SELECTORS.loaders.progressBar);
+        const hasSpinnerPanel = !!document.querySelector(SELECTORS.loaders.spinnerPanel);
+        const hasSpinnerContainer = !!document.querySelector(SELECTORS.loaders.spinnerContainer);
+
+        const isBusy = hasProgressBar || hasSpinnerPanel || hasSpinnerContainer;
+
+        if (!isBusy) {
+          stabilityCount++;
+          if (stabilityCount >= requiredStability) {
+            clearInterval(interval);
+            resolve();
+          }
+        } else {
+          stabilityCount = 0;
+        }
+      }, checkDelay);
+    });
   }
 
   // ── Sort ───────────────────────────────────────────────────────────────

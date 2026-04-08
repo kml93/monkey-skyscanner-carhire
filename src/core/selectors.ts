@@ -69,6 +69,16 @@ export const SELECTORS = {
     recommended: 'RECOMMENDED_SORT',
   },
 
+  // ── Loaders ────────────────────────────────────────────────────────────
+  loaders: {
+    /** Top loading bar indicating search progress */
+    progressBar: '#results-loading-bar',
+    /** Overlay panel spinner "Recherche en cours" */
+    spinnerPanel: '[class*="ResultsView_ResultsView__infoPanel"]',
+    /** Internal spinner container within the panel */
+    spinnerContainer: '[class*="ResultsView_ResultsView__spinnerContainer"]',
+  },
+
   // ── Accordion Section Labels (Support both FR and EN) ──────────────────
   accordionLabels: {
     /** The supplier section label — this one stays open */
