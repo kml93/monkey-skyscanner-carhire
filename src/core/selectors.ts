@@ -81,7 +81,7 @@ export const SELECTORS = {
 
   // ── Accordion Section Labels (Support both FR and EN) ──────────────────
   accordionLabels: {
-    /** The supplier section label — this one stays open */
+    /** The supplier section label */
     provider: ['Prestataire', 'Provider'],
     /** Footer accordion labels — not part of filters, should be ignored */
     footerSections: ['Explorer', 'Explore', 'Entreprise', 'Company', 'Partenaires', 'Partners', 'Voyages', 'Trips', 'Sites internationaux', 'International sites'],

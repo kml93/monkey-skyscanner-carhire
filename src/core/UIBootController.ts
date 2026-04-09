@@ -33,9 +33,7 @@ export class UIBootController {
 
     try {
       // Initialize the app root container once (C1 - scope reduction)
-      this.appRoot = document.querySelector(SELECTORS.sidebar.container) ||
-                     document.querySelector('[data-testid="car-hire-results"]') ||
-                     document.querySelector('#app-root');
+      this.appRoot = document.querySelector(SELECTORS.sidebar.container) || document.querySelector('[data-testid="car-hire-results"]') || document.querySelector('#app-root');
 
       // Wait for the sidebar to be present in the DOM
       await DomObserver.waitForElement(SELECTORS.sidebar.container, 15_000);
@@ -90,9 +88,7 @@ export class UIBootController {
     const hasProgressBar = (): boolean => !!document.getElementById('results-loading-bar');
 
     // Class-wildcard selectors — expensive, scoped to subtree
-    const hasSpinner = (): boolean => !!target.querySelector(
-      `${SELECTORS.loaders.spinnerPanel}, ${SELECTORS.loaders.spinnerContainer}`,
-    );
+    const hasSpinner = (): boolean => !!target.querySelector(`${SELECTORS.loaders.spinnerPanel}, ${SELECTORS.loaders.spinnerContainer}`);
 
     const isBusy = (): boolean => hasProgressBar() || hasSpinner();
 
@@ -154,7 +150,7 @@ export class UIBootController {
    * Dispatches a native `change` event to trigger React's state update.
    */
   private static forceCheapestSort(): void {
-    const select = document.querySelector<HTMLSelectElement>(SELECTORS.sort.dropdown) ?? document.querySelector<HTMLSelectElement>(SELECTORS.sort.dropdownByTestId);
+    const select = this.getSortSelect();
 
     if (!select) {
       Logger.warn('Sort dropdown not found.');
@@ -163,11 +159,7 @@ export class UIBootController {
 
     if (select.value === SELECTORS.sortValues.cheapest) return;
 
-    // Set value and dispatch native change event for React
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set;
-
-    nativeInputValueSetter?.call(select, SELECTORS.sortValues.cheapest);
-    select.dispatchEvent(new Event('change', { bubbles: true }));
+    this.setSortValue(select, SELECTORS.sortValues.cheapest);
 
     Logger.info('Sort forced to "Cheapest".');
   }
@@ -218,8 +210,8 @@ export class UIBootController {
   // ── Fold Accordions ────────────────────────────────────────────────────
 
   /**
-   * Collapses all expanded accordion sections EXCEPT "Provider" / "Prestataire".
-   * Also ignores footer-level accordions.
+   * Collapses ALL expanded accordion sections (including Provider/Prestataire).
+   * Footer-level sections (Explorer, Company, etc.) are still ignored.
    */
   private static foldAccordions(): void {
     const sidebarContainer = document.querySelector(SELECTORS.sidebar.container);
@@ -228,7 +220,6 @@ export class UIBootController {
     // Only target accordion buttons WITHIN the sidebar (not footer)
     const accordionButtons = sidebarContainer.querySelectorAll<HTMLButtonElement>(SELECTORS.accordion.toggleButton);
 
-    const keepOpenLabels = SELECTORS.accordionLabels.provider;
     const footerLabels = SELECTORS.accordionLabels.footerSections;
 
     let foldedCount = 0;
@@ -239,8 +230,6 @@ export class UIBootController {
 
       // Skip if already collapsed
       if (!isExpanded) continue;
-      // Skip the provider section — keep it open
-      if ((keepOpenLabels as readonly string[]).includes(label)) continue;
       // Skip footer-level sections
       if ((footerLabels as readonly string[]).includes(label)) continue;
 
@@ -257,5 +246,52 @@ export class UIBootController {
 
   private static delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  // ── Sort Helpers ───────────────────────────────────────────────────────
+
+  /** Finds the sort dropdown select element. */
+  private static getSortSelect(): HTMLSelectElement | null {
+    return document.querySelector<HTMLSelectElement>(SELECTORS.sort.dropdown) ?? document.querySelector<HTMLSelectElement>(SELECTORS.sort.dropdownByTestId);
+  }
+
+  /** Sets sort value using native setter to bypass React's controlled input. */
+  private static setSortValue(select: HTMLSelectElement, value: string): void {
+    const nativeSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set;
+    nativeSetter?.call(select, value);
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // ── Re-fetch ───────────────────────────────────────────────────────────
+
+  /**
+   * Triggers a Skyscanner re-fetch by toggling the sort dropdown.
+   *
+   * 1. Save current sort value
+   * 2. Toggle to alternative (cheapest ↔ recommended)
+   * 3. Wait for loading to complete
+   * 4. Toggle back to original value
+   * 5. Wait for loading to complete again
+   */
+  static async triggerRefetch(): Promise<void> {
+    const select = this.getSortSelect();
+
+    if (!select) {
+      Logger.warn('Sort dropdown not found — skipping re-fetch.');
+      return;
+    }
+
+    const originalValue = select.value;
+    const alternativeValue = originalValue === SELECTORS.sortValues.cheapest ? SELECTORS.sortValues.recommended : SELECTORS.sortValues.cheapest;
+
+    Logger.info(`Triggering re-fetch: ${originalValue} → ${alternativeValue} → ${originalValue}`);
+
+    this.setSortValue(select, alternativeValue);
+    await this.waitTillReady();
+
+    this.setSortValue(select, originalValue);
+    await this.waitTillReady();
+
+    Logger.info('Re-fetch completed via sort toggle.');
   }
 }

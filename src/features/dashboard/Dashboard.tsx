@@ -15,8 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ApiInterceptor } from '@/core/ApiInterceptor';
 import { FilterEngine } from '@/core/FilterEngine';
 import { DEFAULT_AUTO_CONFIG, type AutoConfig, type Supplier, type SupplierPreference } from '@/core/types';
+import { UIBootController } from '@/core/UIBootController';
 import { AutoConfigTab } from './tabs/AutoConfigTab';
 import { StatsTab } from './tabs/StatsTab';
 import { SuppliersTab } from './tabs/SuppliersTab';
@@ -98,17 +100,24 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, p
 
   // ── Commit & Close ─────────────────────────────────────────────────────
 
-  /** Commit draft state to parent. */
-  const handleApply = useCallback(() => {
+  /** Commit draft state to parent and trigger re-fetch. */
+  const handleApply = useCallback(async () => {
     onCommit(draftConfig, draftPreferences);
+
     if (!draftConfig.apiFilter) {
-      FilterEngine.apply(draftPreferences);
+      await FilterEngine.apply(draftPreferences);
+    } else {
+      // Stealth mode: install interceptor with new preferences before re-fetch
+      // so the sort toggle API call is intercepted with updated data
+      ApiInterceptor.install(draftPreferences);
     }
+
+    await UIBootController.triggerRefetch();
   }, [draftConfig, draftPreferences, onCommit]);
 
-  /** Commit + close. */
+  /** Commit + close (re-fetch runs in background). */
   const handleApplyAndClose = useCallback(() => {
-    handleApply();
+    void handleApply();
     onClose();
   }, [handleApply, onClose]);
 

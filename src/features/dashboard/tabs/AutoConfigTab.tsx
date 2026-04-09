@@ -8,7 +8,6 @@ import {
   ArrowsDownUp,
   ArrowsOutSimple,
   FolderSimpleMinus,
-  Lightning,
   LockSimple,
   ShieldCheck,
 } from '@phosphor-icons/react';
@@ -71,16 +70,6 @@ export function AutoConfigTab({ config, onUpdate, onReset }: AutoConfigTabProps)
       <Separator className="my-1" />
 
       <ConfigRow
-        icon={<Lightning weight="duotone" className="h-4 w-4" />}
-        label="Auto-Apply"
-        description="Apply exclusions on load (without opening Dashboard)"
-        checked={config.autoApply}
-        onChange={(v) => onUpdate({ autoApply: v })}
-      />
-
-      <Separator className="my-1" />
-
-      <ConfigRow
         icon={<ShieldCheck weight="duotone" className="h-4 w-4" />}
         label="Stealth Filter"
         description="Intercept API responses instead of clicking checkboxes (SPA only)"
@@ -121,7 +110,7 @@ function ConfigRow({ icon, label, description, checked, onChange }: ConfigRowPro
   return (
     <div className="flex items-center justify-between gap-3 px-1 py-2 rounded-lg hover:bg-accent/50 transition-colors">
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="flex-shrink-0 text-muted-foreground">{icon}</div>
+        <div className="shrink-0 text-muted-foreground">{icon}</div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium leading-tight">{label}</div>
           <div className="text-xs text-muted-foreground mt-0.5 leading-snug">

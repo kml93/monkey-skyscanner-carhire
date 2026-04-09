@@ -13,7 +13,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ApiInterceptor } from '@/core/ApiInterceptor';
 import { DomObserver } from '@/core/DomObserver';
-import { FilterEngine } from '@/core/FilterEngine';
 import { ScrollInterceptor } from '@/core/ScrollInterceptor';
 import { SupplierRegistry } from '@/core/SupplierRegistry';
 import { UIBootController } from '@/core/UIBootController';
@@ -58,9 +57,6 @@ const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
 
     // Run boot sequence with new callback logic
     UIBootController.boot(config, () => {
-      if (config.autoApply) {
-        FilterEngine.apply(preferences);
-      }
       refreshSuppliers();
     });
 
@@ -72,11 +68,6 @@ const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
 
       UIBootController.reset();
       UIBootController.boot(config, () => {
-        // DOM-based fallback: still apply if autoApply is on
-        // and stealth filter is not handling it
-        if (config.autoApply && !config.apiFilter) {
-          FilterEngine.apply(preferences);
-        }
         refreshSuppliers();
       });
     });

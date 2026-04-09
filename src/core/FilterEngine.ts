@@ -28,10 +28,7 @@ import type { FilterStrategy, Supplier, SupplierPreference } from './types';
 export class ExclusionStrategy implements FilterStrategy {
   readonly label = 'Exclusion (all included, exclude specific)';
 
-  computeUncheckedIds(
-    _allSupplierIds: string[],
-    preferences: Map<string, SupplierPreference>,
-  ): string[] {
+  computeUncheckedIds(_allSupplierIds: string[], preferences: Map<string, SupplierPreference>): string[] {
     const unchecked: string[] = [];
 
     for (const [id, pref] of preferences) {
@@ -74,57 +71,58 @@ export class FilterEngine {
    * processed, reschedule for the next idle period.
    *
    * @param preferences User's supplier preferences from storage
+   * @returns Promise that resolves when all checkboxes are processed
    */
-  static apply(preferences: Map<string, SupplierPreference>): void {
-    const allSupplierIds = this.scrapeSupplierIds();
+  static apply(preferences: Map<string, SupplierPreference>): Promise<void> {
+    return new Promise((resolve) => {
+      const allSupplierIds = this.scrapeSupplierIds();
 
-    if (allSupplierIds.length === 0) {
-      Logger.warn('No suppliers found in DOM.');
-      return;
-    }
-
-    const idsToUncheck = this.strategy.computeUncheckedIds(allSupplierIds, preferences);
-
-    if (idsToUncheck.length === 0) {
-      Logger.info('No suppliers to exclude.');
-      return;
-    }
-
-    // Chunk execution via requestIdleCallback — process checkboxes
-    // one by one during browser idle periods
-    const totalToProcess = idsToUncheck.length;
-    let processedCount = 0;
-
-    const processChunk = (deadline: IdleDeadline): void => {
-      // Process checkboxes while we have time and IDs remaining
-      while (deadline.timeRemaining() > 0 && idsToUncheck.length > 0) {
-        const id = idsToUncheck.shift()!;
-        const checkbox = document.querySelector<HTMLInputElement>(
-          SELECTORS.supplier.checkbox(id),
-        );
-
-        if (!checkbox) continue;
-        // Only click if currently checked (avoid toggling back on)
-        if (!checkbox.checked) continue;
-
-        checkbox.click();
-        processedCount++;
+      if (allSupplierIds.length === 0) {
+        Logger.warn('No suppliers found in DOM.');
+        resolve();
+        return;
       }
 
-      // If there are remaining IDs, reschedule for next idle period
-      if (idsToUncheck.length > 0) {
-        requestIdleCallback(processChunk, { timeout: 1000 });
-      } else {
-        Logger.info(
-          `Chunked excluded ${processedCount}/${totalToProcess} supplier(s) ` +
-          `via requestIdleCallback.`,
-        );
-      }
-    };
+      const idsToUncheck = this.strategy.computeUncheckedIds(allSupplierIds, preferences);
 
-    // Start processing with a 1s safety timeout (forces execution if
-    // the browser never becomes idle)
-    requestIdleCallback(processChunk, { timeout: 1000 });
+      if (idsToUncheck.length === 0) {
+        Logger.info('No suppliers to exclude.');
+        resolve();
+        return;
+      }
+
+      // Chunk execution via requestIdleCallback — process checkboxes
+      // one by one during browser idle periods
+      const totalToProcess = idsToUncheck.length;
+      let processedCount = 0;
+
+      const processChunk = (deadline: IdleDeadline): void => {
+        // Process checkboxes while we have time and IDs remaining
+        while (deadline.timeRemaining() > 0 && idsToUncheck.length > 0) {
+          const id = idsToUncheck.shift()!;
+          const checkbox = document.querySelector<HTMLInputElement>(SELECTORS.supplier.checkbox(id));
+
+          if (!checkbox) continue;
+          // Only click if currently checked (avoid toggling back on)
+          if (!checkbox.checked) continue;
+
+          checkbox.click();
+          processedCount++;
+        }
+
+        // If there are remaining IDs, reschedule for next idle period
+        if (idsToUncheck.length > 0) {
+          requestIdleCallback(processChunk, { timeout: 1000 });
+        } else {
+          Logger.info(`Chunked excluded ${processedCount}/${totalToProcess} supplier(s) ` + `via requestIdleCallback.`);
+          resolve();
+        }
+      };
+
+      // Start processing with a 1s safety timeout (forces execution if
+      // the browser never becomes idle)
+      requestIdleCallback(processChunk, { timeout: 1000 });
+    });
   }
 
   /**
@@ -132,9 +130,7 @@ export class FilterEngine {
    * Returns structured Supplier data for UI rendering.
    */
   static scrapeSuppliers(): Supplier[] {
-    const checkboxes = document.querySelectorAll<HTMLInputElement>(
-      SELECTORS.supplier.anyCheckbox,
-    );
+    const checkboxes = document.querySelectorAll<HTMLInputElement>(SELECTORS.supplier.anyCheckbox);
 
     const suppliers: Supplier[] = [];
     const seenIds = new Set<string>();
@@ -175,9 +171,7 @@ export class FilterEngine {
 
   /** Quick scrape of just supplier IDs (cheaper than full scrape). */
   private static scrapeSupplierIds(): string[] {
-    const checkboxes = document.querySelectorAll<HTMLInputElement>(
-      SELECTORS.supplier.anyCheckbox,
-    );
+    const checkboxes = document.querySelectorAll<HTMLInputElement>(SELECTORS.supplier.anyCheckbox);
 
     const ids: string[] = [];
     const seen = new Set<string>();

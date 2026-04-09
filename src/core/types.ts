@@ -60,8 +60,6 @@ export interface AutoConfig {
   expandAllSuppliers: boolean;
   /** Intercept programmatic scroll globally. */
   scrollLock: boolean;
-  /** Apply supplier exclusions automatically on page load. */
-  autoApply: boolean;
   /**
    * Use API interception (Approach D) for filtering on SPA navigations.
    * When enabled, patches window.fetch to modify carhire-quotes responses
@@ -79,7 +77,6 @@ export const DEFAULT_AUTO_CONFIG: AutoConfig = {
   foldAccordions: false,
   expandAllSuppliers: false,
   scrollLock: false,
-  autoApply: false,
   apiFilter: false,
 };
 
@@ -122,10 +119,7 @@ export interface FilterStrategy {
    * Given the full list of supplier IDs and user preferences,
    * returns the IDs that should be UNCHECKED in the DOM.
    */
-  computeUncheckedIds(
-    allSupplierIds: string[],
-    preferences: Map<string, SupplierPreference>,
-  ): string[];
+  computeUncheckedIds(allSupplierIds: string[], preferences: Map<string, SupplierPreference>): string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -133,8 +127,4 @@ export interface FilterStrategy {
 // ---------------------------------------------------------------------------
 
 /** Events emitted by the core engine for React hooks to subscribe to. */
-export type DashboardEvent =
-  | { type: 'suppliers-updated'; suppliers: Supplier[] }
-  | { type: 'boot-complete' }
-  | { type: 'filters-applied' }
-  | { type: 'config-changed'; config: AutoConfig };
+export type DashboardEvent = { type: 'suppliers-updated'; suppliers: Supplier[] } | { type: 'boot-complete' } | { type: 'filters-applied' } | { type: 'config-changed'; config: AutoConfig };
