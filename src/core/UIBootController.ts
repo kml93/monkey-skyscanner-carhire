@@ -43,7 +43,6 @@ export class UIBootController {
 
       // Execute all preparations in rapid succession
       if (config.sortCheapest) this.forceCheapestSort();
-      if (config.expandAllSuppliers) await this.expandAllSuppliers();
       if (config.foldAccordions) this.foldAccordions();
 
       this.booted = true;
@@ -164,49 +163,6 @@ export class UIBootController {
     Logger.info('Sort forced to "Cheapest".');
   }
 
-  // ── Expand Suppliers ───────────────────────────────────────────────────
-
-  /**
-   * Clicks "Select all" (or French "Tout sélectionner") which both:
-   * - Expands the full list (popular + all suppliers)
-   * - Checks all supplier checkboxes
-   *
-   * Then waits for the full list to render before proceeding.
-   */
-  private static async expandAllSuppliers(): Promise<void> {
-    // Find "Select all" / "Tout sélectionner" button by text content
-    const filterButtons = document.querySelectorAll<HTMLButtonElement>(SELECTORS.buttons.filterActionWildcard);
-
-    const selectAllTexts = ['Tout sélectionner', 'Select all'];
-    let selectAllBtn: HTMLButtonElement | null = null;
-    for (const btn of filterButtons) {
-      const text = btn.textContent?.trim() ?? '';
-      if (selectAllTexts.includes(text)) {
-        selectAllBtn = btn;
-        break;
-      }
-    }
-
-    if (!selectAllBtn) {
-      Logger.warn('"Select all" button not found.');
-      // Fallback: try just "Show all suppliers" / "Afficher tous les fournisseurs"
-      const showAllBtn = document.querySelector<HTMLButtonElement>(SELECTORS.buttons.showAllSuppliers);
-      showAllBtn?.click();
-      return;
-    }
-
-    // NOTE: This click triggers a synchronous React re-render (~80-90ms) which
-    // Chrome flags as [Violation]. This is inherent — React must expand and
-    // render the full supplier list. No scheduling trick can avoid it.
-    // The only alternative would be Approach D (API interception).
-    selectAllBtn.click();
-
-    Logger.info('Clicked "Select all" (expand + check all).');
-
-    // Wait for the supplier list to finish rendering
-    await this.delay(800);
-  }
-
   // ── Fold Accordions ────────────────────────────────────────────────────
 
   /**
@@ -240,12 +196,6 @@ export class UIBootController {
     if (foldedCount > 0) {
       Logger.info(`Folded ${foldedCount} accordion section(s).`);
     }
-  }
-
-  // ── Utility ────────────────────────────────────────────────────────────
-
-  private static delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // ── Sort Helpers ───────────────────────────────────────────────────────

@@ -56,8 +56,6 @@ export interface AutoConfig {
   sortCheapest: boolean;
   /** Collapse all accordion sections except "Providers" on page load. */
   foldAccordions: boolean;
-  /** Click "Show all suppliers" on page load. */
-  expandAllSuppliers: boolean;
   /** Intercept programmatic scroll globally. */
   scrollLock: boolean;
   /**
@@ -75,7 +73,6 @@ export interface AutoConfig {
 export const DEFAULT_AUTO_CONFIG: AutoConfig = {
   sortCheapest: false,
   foldAccordions: false,
-  expandAllSuppliers: false,
   scrollLock: false,
   apiFilter: false,
 };

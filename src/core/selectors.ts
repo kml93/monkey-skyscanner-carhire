@@ -53,10 +53,6 @@ export const SELECTORS = {
 
   // ── Action Buttons (Prestataire section) ───────────────────────────────
   buttons: {
-    /** "Afficher tous les fournisseurs" — expand full supplier list */
-    showAllSuppliers: '[data-testid="show-all-suppliers"]',
-    /** "Tout sélectionner" / "Tout supprimer" — filter action buttons (wildcard) */
-    filterActionWildcard: 'button[class*="filter-button"]',
     /** Provider name label in result cards */
     providerName: '[data-testid="provider-name"]',
   },
@@ -81,8 +77,6 @@ export const SELECTORS = {
 
   // ── Accordion Section Labels (Support both FR and EN) ──────────────────
   accordionLabels: {
-    /** The supplier section label */
-    provider: ['Prestataire', 'Provider'],
     /** Footer accordion labels — not part of filters, should be ignored */
     footerSections: ['Explorer', 'Explore', 'Entreprise', 'Company', 'Partenaires', 'Partners', 'Voyages', 'Trips', 'Sites internationaux', 'International sites'],
   },

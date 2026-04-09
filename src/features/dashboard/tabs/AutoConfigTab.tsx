@@ -6,7 +6,6 @@
 
 import {
   ArrowsDownUp,
-  ArrowsOutSimple,
   FolderSimpleMinus,
   LockSimple,
   ShieldCheck,
@@ -45,16 +44,6 @@ export function AutoConfigTab({ config, onUpdate, onReset }: AutoConfigTabProps)
         description="Close all filters except Providers"
         checked={config.foldAccordions}
         onChange={(v) => onUpdate({ foldAccordions: v })}
-      />
-
-      <Separator className="my-1" />
-
-      <ConfigRow
-        icon={<ArrowsOutSimple weight="duotone" className="h-4 w-4" />}
-        label="Supplier Expansion"
-        description="Expand and check all suppliers on load"
-        checked={config.expandAllSuppliers}
-        onChange={(v) => onUpdate({ expandAllSuppliers: v })}
       />
 
       <Separator className="my-1" />
