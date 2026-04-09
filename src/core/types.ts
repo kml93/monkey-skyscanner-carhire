@@ -36,6 +36,16 @@ export interface SupplierPreference {
   excluded: boolean;
 }
 
+/** Supplier data captured from carhire-quotes API response. */
+export interface SupplierInfo {
+  /** Skyscanner internal numeric ID. */
+  readonly id: string;
+  /** Display name (e.g. "Eren Rent a Car"). */
+  readonly name: string;
+  /** Minimum price from price_range.min, null if unavailable. */
+  readonly minPrice: number | null;
+}
+
 // ---------------------------------------------------------------------------
 // Auto-Configuration
 // ---------------------------------------------------------------------------
@@ -85,6 +95,8 @@ export const STORAGE_KEYS = {
   AUTO_CONFIG: 'skyscanner_auto_config',
   /** Theme preference: 'light' | 'dark'. */
   THEME: 'skyscanner_theme',
+  /** Map of supplier ID → SupplierInfo (captured from API responses). */
+  SUPPLIER_REGISTRY: 'skyscanner_supplier_registry',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

@@ -1,19 +1,20 @@
 /**
- * API Interceptor — patches window.fetch to filter carhire-quotes requests.
+ * API Interceptor — patches window.fetch for supplier data capture and filtering.
  *
- * Modifies the outgoing request URL to exclude unwanted suppliers from the
- * `filters=suppliers:...` query parameter. The server returns only matching
- * results, keeping pagination intact (no response-body tampering).
+ * Two independent concerns:
+ *   1. RESPONSE CAPTURE (always active when installed):
+ *      Captures supplier data from carhire-quotes responses into SupplierRegistry.
+ *      This populates the Dashboard with all available suppliers without DOM dependency.
  *
- * - Zero DOM interaction (no checkbox clicks)
- * - Zero isTrusted=false events (undetectable by anti-bot)
- * - Zero forced reflows (no performance violations)
- * - Pagination-safe (server-side filtering)
+ *   2. REQUEST FILTERING (only when filterEnabled = true):
+ *      Builds `filters=suppliers:...` from SupplierRegistry (registry IDs minus
+ *      user exclusions), replacing the existing param. Controlled by config.apiFilter.
  *
- * Single Responsibility: only handles request URL transformation.
+ * Single Responsibility: only handles fetch interception and URL transformation.
  */
 
 import { Logger } from './Logger';
+import { SupplierRegistry } from './SupplierRegistry';
 import type { SupplierPreference } from './types';
 
 // ---------------------------------------------------------------------------
@@ -34,6 +35,9 @@ export class ApiInterceptor {
   private static originalFetch: typeof window.fetch | null = null;
   private static installed = false;
 
+  /** Whether request filtering is active (config.apiFilter). */
+  private static filterEnabled = false;
+
   /** Set of excluded vendor IDs (numeric string → true). */
   private static excludedVndrIds: Set<string> = new Set();
 
@@ -42,6 +46,8 @@ export class ApiInterceptor {
   /**
    * Installs the fetch interceptor.
    * Idempotent — safe to call multiple times (updates preferences only).
+   *
+   * Always captures responses. Request filtering is controlled by setFilterEnabled().
    */
   static install(preferences: Map<string, SupplierPreference>): void {
     this.updateExclusions(preferences);
@@ -59,15 +65,39 @@ export class ApiInterceptor {
     ): Promise<Response> {
       const resolved = self.resolveInput(args[0], args[1]);
 
-      if (resolved.url.includes(QUOTES_PATH)) {
+      // Phase 1: Transform REQUEST — only when filtering is enabled
+      if (self.filterEnabled && resolved.url.includes(QUOTES_PATH)) {
         args = self.transformRequest(args, resolved);
       }
 
-      return self.originalFetch!.apply(this, args);
+      // Execute original fetch
+      const response = await self.originalFetch!.apply(this, args);
+
+      // Phase 2: Capture RESPONSE — always active (awaited, not fire-and-forget)
+      if (resolved.url.includes(QUOTES_PATH)) {
+        try {
+          const text = await response.clone().text();
+          const data = JSON.parse(text) as Record<string, unknown>;
+          Logger.info(
+            `ApiInterceptor: captured carhire-quotes response (${Object.keys(data).join(', ')}).`,
+          );
+          SupplierRegistry.captureFromResponse(data);
+        } catch (err) {
+          if (err instanceof DOMException && err.name === 'AbortError') {
+            // Expected during Skyscanner polling — skip silently
+          } else {
+            Logger.warn(`ApiInterceptor: response capture failed — ${String(err)}.`);
+          }
+        }
+      }
+
+      return response;
     };
 
     this.installed = true;
-    Logger.info('ApiInterceptor: fetch patched (request-level filtering).');
+    Logger.info(
+      `ApiInterceptor: fetch patched (capture=always, filtering=${this.filterEnabled}).`,
+    );
   }
 
   /**
@@ -81,6 +111,12 @@ export class ApiInterceptor {
     this.installed = false;
 
     Logger.info('ApiInterceptor: fetch restored.');
+  }
+
+  /** Enables or disables request filtering (controlled by config.apiFilter). */
+  static setFilterEnabled(enabled: boolean): void {
+    this.filterEnabled = enabled;
+    Logger.info(`ApiInterceptor: request filtering ${enabled ? 'enabled' : 'disabled'}.`);
   }
 
   /** Updates the exclusion set from the latest preferences. */
@@ -104,8 +140,12 @@ export class ApiInterceptor {
   // ── Request Transformation ──────────────────────────────────────────────
 
   /**
-   * Rewrites the fetch arguments to remove excluded suppliers from
-   * the `filters=suppliers:...` query parameter.
+   * Builds `filters=suppliers:...` from the SupplierRegistry.
+   *
+   * Strategy:
+   *   - Registry empty  → pass through (cold start, will populate from response)
+   *   - No exclusions   → pass through (nothing to filter)
+   *   - Has exclusions  → build filters = registry IDs minus excluded IDs
    *
    * Returns a new args array; does not mutate the original.
    */
@@ -113,31 +153,22 @@ export class ApiInterceptor {
     args: Parameters<typeof fetch>,
     resolved: { url: string; isRequest: boolean },
   ): Parameters<typeof fetch> {
-    const excluded = this.excludedVndrIds;
+    const allIds = SupplierRegistry.getIds();
+    if (allIds.length === 0) return args;
 
+    const excluded = this.excludedVndrIds;
     if (excluded.size === 0) return args;
+
+    const includedIds = allIds.filter((id) => !excluded.has(id));
+
+    if (includedIds.length === 0) return args;
 
     try {
       const url = new URL(resolved.url);
-      const filtersParam = url.searchParams.get('filters');
-
-      if (!filtersParam || !filtersParam.startsWith(SUPPLIERS_FILTER_PREFIX)) {
-        return args;
-      }
-
-      const supplierIds = filtersParam
-        .substring(SUPPLIERS_FILTER_PREFIX.length)
-        .split(',');
-
-      const filteredIds = supplierIds.filter((id) => !excluded.has(id));
-      const removedCount = supplierIds.length - filteredIds.length;
-
-      if (removedCount === 0) return args;
-
-      url.searchParams.set('filters', `${SUPPLIERS_FILTER_PREFIX}${filteredIds.join(',')}`);
+      url.searchParams.set('filters', `${SUPPLIERS_FILTER_PREFIX}${includedIds.join(',')}`);
 
       Logger.info(
-        `ApiInterceptor: removed ${removedCount} excluded vendor(s) from request filters.`,
+        `ApiInterceptor: filtered ${excluded.size} excluded vendor(s), passing ${includedIds.length} supplier(s).`,
       );
 
       // Rebuild args with modified URL

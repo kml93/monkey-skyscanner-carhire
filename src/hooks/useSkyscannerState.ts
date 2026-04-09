@@ -1,13 +1,16 @@
 /**
- * React hook that scrapes the current Skyscanner DOM state.
+ * React hook that provides supplier data from the SupplierRegistry.
  *
- * Provides a reactive view of visible suppliers,
- * refreshed on demand or triggered by the DomObserver.
+ * Primary source: SupplierRegistry (captured from API responses, no DOM dependency).
+ * Fallback: DOM scraping via FilterEngine.scrapeSuppliers() (cold start only).
+ *
+ * Also reads total result count from the DOM banner text.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 
 import { FilterEngine } from '@/core/FilterEngine';
+import { SupplierRegistry } from '@/core/SupplierRegistry';
 import type { Supplier } from '@/core/types';
 
 export function useSkyscannerState() {
@@ -16,18 +19,32 @@ export function useSkyscannerState() {
   const [loading, setLoading] = useState(true);
 
   /**
-   * Scrapes the DOM for current supplier data.
-   * Called on mount and can be triggered manually via `refresh()`.
+   * Refreshes supplier data.
+   * Uses SupplierRegistry as primary source, falls back to DOM scraping.
    */
   const refresh = useCallback(() => {
     setLoading(true);
 
-    // Use requestAnimationFrame to ensure we read the latest DOM state
     requestAnimationFrame(() => {
-      const scraped = FilterEngine.scrapeSuppliers();
-      setSuppliers(scraped);
+      // Primary: registry data (always available, no DOM dependency)
+      const registryData = SupplierRegistry.getAll();
 
-      // Try to read total result count from the banner text
+      if (registryData.size > 0) {
+        const mapped: Supplier[] = Array.from(registryData.values()).map((info) => ({
+          id: info.id,
+          name: info.name,
+          priceLabel: info.minPrice !== null ? `from ${info.minPrice} €` : '',
+          price: info.minPrice ?? 0,
+          checked: true,
+        }));
+        setSuppliers(mapped);
+      } else {
+        // Fallback: DOM scraping (cold start before first API response)
+        const scraped = FilterEngine.scrapeSuppliers();
+        setSuppliers(scraped);
+      }
+
+      // Total results from banner (DOM-dependent, non-critical)
       const bannerText = document.querySelector('[data-testid="sort-by-banner"]')?.textContent ?? '';
       const match = bannerText.match(/(\d+)\s*(result|résultat)/i);
       if (match) {
@@ -43,6 +60,11 @@ export function useSkyscannerState() {
     // Delay to ensure UIBootController has completed
     const timer = setTimeout(refresh, 2_000);
     return () => clearTimeout(timer);
+  }, [refresh]);
+
+  // Auto-refresh when registry captures new data from API responses
+  useEffect(() => {
+    return SupplierRegistry.onChange(refresh);
   }, [refresh]);
 
   return {

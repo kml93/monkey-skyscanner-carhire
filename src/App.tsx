@@ -15,6 +15,7 @@ import { ApiInterceptor } from '@/core/ApiInterceptor';
 import { DomObserver } from '@/core/DomObserver';
 import { FilterEngine } from '@/core/FilterEngine';
 import { ScrollInterceptor } from '@/core/ScrollInterceptor';
+import { SupplierRegistry } from '@/core/SupplierRegistry';
 import { UIBootController } from '@/core/UIBootController';
 import { Dashboard } from '@/features/dashboard/Dashboard';
 import { FloatingIndicator } from '@/features/floating-indicator/FloatingIndicator';
@@ -44,12 +45,17 @@ const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
     void (config.scrollLock ? ScrollInterceptor.enable() : ScrollInterceptor.disable());
   }, [config.scrollLock]);
 
-  // Sync API interceptor with config toggle and supplier preferences
+  // Sync API interceptor: always installed for response capture,
+  // request filtering toggled by config.apiFilter
   useEffect(() => {
-    void (config.apiFilter ? ApiInterceptor.install(preferences) : ApiInterceptor.uninstall());
+    ApiInterceptor.setFilterEnabled(config.apiFilter);
+    ApiInterceptor.install(preferences);
   }, [config.apiFilter, preferences]);
 
   useEffect(() => {
+    // Initialize supplier registry from persisted storage
+    SupplierRegistry.initialize();
+
     // Run boot sequence with new callback logic
     UIBootController.boot(config, () => {
       if (config.autoApply) {
@@ -61,11 +67,8 @@ const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
     // Watch for SPA navigation (URL changes) and re-boot
     DomObserver.start();
     const unsub = DomObserver.onNavigate(() => {
-      // When stealth filter is enabled, install API interceptor
-      // so the next carhire-quotes fetch returns pre-filtered data
-      if (config.apiFilter) {
-        ApiInterceptor.install(preferences);
-      }
+      // Always ensure interceptor is installed for response capture
+      ApiInterceptor.install(preferences);
 
       UIBootController.reset();
       UIBootController.boot(config, () => {

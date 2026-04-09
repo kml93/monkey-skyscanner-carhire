@@ -11,6 +11,7 @@ import {
   type AutoConfig,
   DEFAULT_AUTO_CONFIG,
   STORAGE_KEYS,
+  type SupplierInfo,
   type SupplierPreference,
 } from './types';
 
@@ -85,6 +86,22 @@ export class StorageService {
     GM_setValue(STORAGE_KEYS.THEME, theme);
   }
 
+  // ── Supplier Registry ────────────────────────────────────────────────────
+
+  /** Retrieves the full map of supplier info captured from API responses. */
+  static getSupplierRegistry(): Map<string, SupplierInfo> {
+    const raw = GM_getValue<Record<string, SupplierInfo>>(
+      STORAGE_KEYS.SUPPLIER_REGISTRY,
+      {},
+    );
+    return new Map(Object.entries(raw));
+  }
+
+  /** Persists the supplier registry. */
+  static setSupplierRegistry(registry: Map<string, SupplierInfo>): void {
+    GM_setValue(STORAGE_KEYS.SUPPLIER_REGISTRY, Object.fromEntries(registry));
+  }
+
   // ── Cross-Tab Synchronization ──────────────────────────────────────────
 
   /**
@@ -124,5 +141,15 @@ export class StorageService {
   /** Subscribes specifically to auto-config changes. */
   static onAutoConfigChanged(callback: ChangeCallback<AutoConfig>): number {
     return this.subscribe<AutoConfig>(STORAGE_KEYS.AUTO_CONFIG, callback);
+  }
+
+  /** Subscribes specifically to supplier registry changes. */
+  static onRegistryChanged(
+    callback: (registry: Map<string, SupplierInfo>, remote: boolean) => void,
+  ): number {
+    return this.subscribe<Record<string, SupplierInfo>>(
+      STORAGE_KEYS.SUPPLIER_REGISTRY,
+      (raw, remote) => callback(new Map(Object.entries(raw ?? {})), remote),
+    );
   }
 }
