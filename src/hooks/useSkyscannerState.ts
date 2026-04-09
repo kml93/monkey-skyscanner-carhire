@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { SupplierRegistry } from '@/core/SupplierRegistry';
+import { SELECTORS } from '@/core/selectors';
+import { TIMING } from '@/core/constants';
 import type { Supplier } from '@/core/types';
 
 export function useSkyscannerState() {
@@ -38,20 +40,20 @@ export function useSkyscannerState() {
       setSuppliers(mapped);
 
       // Total results from banner (DOM-dependent, non-critical)
-      const bannerText = document.querySelector('[data-testid="sort-by-banner"]')?.textContent ?? '';
+      const bannerText = document.querySelector(SELECTORS.banner.sortResults)?.textContent ?? '';
       const match = bannerText.match(/(\d+)\s*(result|résultat)/i);
       if (match) {
         setTotalResults(parseInt(match[1], 10));
       }
 
       setLoading(false);
-    }, { timeout: 2000 });
+    }, { timeout: TIMING.IDLE_REFRESH_TIMEOUT });
   }, []);
 
   // Initial refresh on mount
   useEffect(() => {
     // Delay to ensure UIBootController has completed
-    const timer = setTimeout(refresh, 2_000);
+    const timer = setTimeout(refresh, TIMING.INITIAL_REFRESH_DELAY);
     return () => clearTimeout(timer);
   }, [refresh]);
 

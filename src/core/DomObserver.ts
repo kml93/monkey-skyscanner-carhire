@@ -9,6 +9,8 @@
  */
 
 import { Logger } from './Logger';
+import { SELECTORS } from './selectors';
+import { TIMING } from './constants';
 
 type NavigationCallback = () => void;
 
@@ -25,9 +27,10 @@ export class DomObserver {
     if (this.urlObserverInterval) return;
 
     // Initialize app root for scoped queries (C1)
-    this.appRoot = document.querySelector('[data-testid="side-container-filters-container"]') ||
-                   document.querySelector('[data-testid="car-hire-results"]') ||
-                   document.querySelector('#app-root');
+    const rootSelectors = SELECTORS.appRoot.candidates;
+    this.appRoot = document.querySelector(rootSelectors[0]) ||
+                   document.querySelector(rootSelectors[1]) ||
+                   document.querySelector(rootSelectors[2]);
 
     this.lastKnownUrl = window.location.href;
 
@@ -39,7 +42,7 @@ export class DomObserver {
         this.lastKnownUrl = currentUrl;
         this.notifyAll();
       }
-    }, 500);
+    }, TIMING.URL_OBSERVER_INTERVAL);
   }
 
   /** Stops all observers and clears callbacks. */

@@ -9,6 +9,16 @@
  */
 
 export const SELECTORS = {
+  // ── App Root ────────────────────────────────────────────────────────────
+  appRoot: {
+    /** Candidate selectors for the app root (tried in order) */
+    candidates: [
+      '[data-testid="side-container-filters-container"]',
+      '[data-testid="car-hire-results"]',
+      '#app-root',
+    ],
+  },
+
   // ── Sort Controls ──────────────────────────────────────────────────────
   sort: {
     /** <select> dropdown for sort order */
@@ -73,6 +83,12 @@ export const SELECTORS = {
     spinnerPanel: '[class*="ResultsView_ResultsView__infoPanel"]',
     /** Internal spinner container within the panel */
     spinnerContainer: '[class*="ResultsView_ResultsView__spinnerContainer"]',
+  },
+
+  // ── Banner ──────────────────────────────────────────────────────────────
+  banner: {
+    /** Sort results banner showing total count */
+    sortResults: '[data-testid="sort-by-banner"]',
   },
 
   // ── Accordion Section Labels (Support both FR and EN) ──────────────────

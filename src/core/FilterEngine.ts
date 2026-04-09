@@ -16,6 +16,7 @@
 import { Logger } from './Logger';
 import { SupplierRegistry } from './SupplierRegistry';
 import { SELECTORS } from './selectors';
+import { TIMING } from './constants';
 import type { FilterStrategy, SupplierEntry } from './types';
 
 // ---------------------------------------------------------------------------
@@ -114,7 +115,7 @@ export class FilterEngine {
 
         // If there are remaining IDs, reschedule for next idle period
         if (idsToUncheck.length > 0) {
-          requestIdleCallback(processChunk, { timeout: 1000 });
+          requestIdleCallback(processChunk, { timeout: TIMING.IDLE_CHUNK_TIMEOUT });
         } else {
           Logger.info(`Chunked excluded ${processedCount}/${totalToProcess} supplier(s) ` + `via requestIdleCallback.`);
           resolve();
@@ -123,7 +124,7 @@ export class FilterEngine {
 
       // Start processing with a 1s safety timeout (forces execution if
       // the browser never becomes idle)
-      requestIdleCallback(processChunk, { timeout: 1000 });
+      requestIdleCallback(processChunk, { timeout: TIMING.IDLE_CHUNK_TIMEOUT });
     });
   }
 

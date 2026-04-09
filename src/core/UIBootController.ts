@@ -16,6 +16,7 @@
 import { DomObserver } from './DomObserver';
 import { Logger } from './Logger';
 import { SELECTORS } from './selectors';
+import { TIMING } from './constants';
 import type { AutoConfig } from './types';
 
 export class UIBootController {
@@ -33,10 +34,11 @@ export class UIBootController {
 
     try {
       // Initialize the app root container once (C1 - scope reduction)
-      this.appRoot = document.querySelector(SELECTORS.sidebar.container) || document.querySelector('[data-testid="car-hire-results"]') || document.querySelector('#app-root');
+      const rootSelectors = SELECTORS.appRoot.candidates;
+      this.appRoot = document.querySelector(rootSelectors[0]) || document.querySelector(rootSelectors[1]) || document.querySelector(rootSelectors[2]);
 
       // Wait for the sidebar to be present in the DOM
-      await DomObserver.waitForElement(SELECTORS.sidebar.container, 15_000);
+      await DomObserver.waitForElement(SELECTORS.sidebar.container, TIMING.LOADING_TIMEOUT);
 
       // Wait for all loaders/spinners to disappear
       await this.waitTillReady();
@@ -100,7 +102,7 @@ export class UIBootController {
 
       let debounceTimer: ReturnType<typeof setTimeout> | null = null;
       let stabilityCount = 0;
-      const requiredStability = 2;
+      const requiredStability = TIMING.LOADING_STABILITY_REQUIRED;
 
       const cleanup = () => {
         observer.disconnect();
@@ -123,14 +125,14 @@ export class UIBootController {
           return;
         }
         // Re-verify after short delay for stability
-        debounceTimer = setTimeout(check, 300);
+        debounceTimer = setTimeout(check, TIMING.LOADING_DEBOUNCE);
       };
 
       // Observe DOM mutations — check loaders only when something changes
       const observer = new MutationObserver(() => {
         if (debounceTimer) clearTimeout(debounceTimer);
         // Debounce: coalesce rapid mutations into a single check
-        debounceTimer = setTimeout(check, 300);
+        debounceTimer = setTimeout(check, TIMING.LOADING_DEBOUNCE);
       });
 
       observer.observe(target, { childList: true, subtree: true });
@@ -139,7 +141,7 @@ export class UIBootController {
       setTimeout(() => {
         cleanup();
         resolve();
-      }, 15_000);
+      }, TIMING.LOADING_TIMEOUT);
     });
   }
 
