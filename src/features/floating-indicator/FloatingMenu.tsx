@@ -47,7 +47,7 @@ export function FloatingMenu({
   return (
     <div
       className="
-        fixed bottom-18 left-4 z-[2147483647]
+        fixed bottom-18 left-4 z-50
         w-64 rounded-xl
         bg-popover text-popover-foreground
         border border-border
@@ -146,7 +146,7 @@ function MenuButton({ icon, label, description, onClick }: MenuButtonProps) {
         cursor-pointer
       "
     >
-      <div className="flex-shrink-0 text-muted-foreground">{icon}</div>
+      <div className="shrink-0 text-muted-foreground">{icon}</div>
       <div className="flex-1 min-w-0">
         <div className="font-medium text-sm leading-tight">{label}</div>
         <div className="text-xs text-muted-foreground truncate">{description}</div>

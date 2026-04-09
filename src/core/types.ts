@@ -52,15 +52,25 @@ export interface AutoConfig {
   scrollLock: boolean;
   /** Apply supplier exclusions automatically on page load. */
   autoApply: boolean;
+  /**
+   * Use API interception (Approach D) for filtering on SPA navigations.
+   * When enabled, patches window.fetch to modify carhire-quotes responses
+   * before React processes them — zero DOM interaction, zero anti-bot risk.
+   *
+   * Hybrid: DOM-based filtering still handles the initial page load;
+   * API interception handles subsequent SPA navigations.
+   */
+  apiFilter: boolean;
 }
 
 /** Default auto-config values — everything enabled for best UX. */
 export const DEFAULT_AUTO_CONFIG: AutoConfig = {
-  sortCheapest: true,
-  foldAccordions: true,
-  expandAllSuppliers: true,
-  scrollLock: true,
-  autoApply: true,
+  sortCheapest: false,
+  foldAccordions: false,
+  expandAllSuppliers: false,
+  scrollLock: false,
+  autoApply: false,
+  apiFilter: false,
 };
 
 // ---------------------------------------------------------------------------

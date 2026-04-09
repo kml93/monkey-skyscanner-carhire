@@ -10,6 +10,7 @@ import {
   FolderSimpleMinus,
   Lightning,
   LockSimple,
+  ShieldCheck,
 } from '@phosphor-icons/react';
 
 import { Separator } from '@/components/ui/separator';
@@ -75,6 +76,16 @@ export function AutoConfigTab({ config, onUpdate, onReset }: AutoConfigTabProps)
         description="Apply exclusions on load (without opening Dashboard)"
         checked={config.autoApply}
         onChange={(v) => onUpdate({ autoApply: v })}
+      />
+
+      <Separator className="my-1" />
+
+      <ConfigRow
+        icon={<ShieldCheck weight="duotone" className="h-4 w-4" />}
+        label="Stealth Filter"
+        description="Intercept API responses instead of clicking checkboxes (SPA only)"
+        checked={config.apiFilter}
+        onChange={(v) => onUpdate({ apiFilter: v })}
       />
 
       <Separator className="my-3" />

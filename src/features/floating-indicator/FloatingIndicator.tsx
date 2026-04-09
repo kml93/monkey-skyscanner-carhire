@@ -39,14 +39,14 @@ export function FloatingIndicator({ excludedCount, onClick }: FloatingIndicatorP
             size="icon"
             onClick={handleClick}
             className="
-              fixed bottom-4 left-4 z-[2147483647]
+              fixed bottom-4 left-4 z-50
               h-11 w-11 rounded-full
               bg-[#0770e3] hover:bg-[#0559b3]
               shadow-lg shadow-blue-500/25
               transition-all duration-300 ease-out
               hover:scale-110 hover:shadow-xl hover:shadow-blue-500/40
               active:scale-95
-              animate-in fade-in zoom-in-50 duration-500
+              animate-in fade-in zoom-in-50
             "
             aria-label="Ouvrir le Dashboard Skyscanner"
           />

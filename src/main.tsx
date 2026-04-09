@@ -3,6 +3,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import App from './App';
 import { ShadowPortalProvider } from './contexts/ShadowPortalContext';
 import './fonts.css';
+import './index.css';
 import styleString from './index.css?inline';
 
 /**
@@ -18,11 +19,6 @@ class SkyScannerController extends HTMLElement {
     super();
     // We attach the Shadow DOM directly in the constructor
     this.shadowRoot = this.attachShadow({ mode: 'open' });
-
-    // Inject styles immediately
-    const styleSheet = new CSSStyleSheet();
-    styleSheet.replaceSync(styleString);
-    this.shadowRoot.adoptedStyleSheets = [styleSheet];
   }
 }
 
@@ -47,14 +43,23 @@ class SkyScannerApplication {
 
     this.hostInstance = document.createElement(SkyScannerController.CONTROLLER_TAG) as SkyScannerController;
 
-    // 2. Create Shadow Root
+    // 2. Inject styles dynamically (Ensures HMR readiness)
+    // const styleTag = document.createElement('style');
+    // styleTag.textContent = styleString;
+    // this.hostInstance.shadowRoot.appendChild(styleTag);
+    const styleSheet = new CSSStyleSheet();
+    styleSheet.replaceSync(styleString);
+    this.hostInstance.shadowRoot.adoptedStyleSheets = [styleSheet];
+
+    // 3. Create Shadow Root
     document.documentElement.appendChild(this.hostInstance);
 
-    // 3. React App Container
+    // 4. React App Container
     const appContainer = document.createElement('div');
+    appContainer.id = 'app-skyscanner-car_rental';
     this.hostInstance.shadowRoot.appendChild(appContainer);
 
-    // 4. Portals Container (Base UI portals render here instead of document.body)
+    // 5. Portals Container (Base UI portals render here instead of document.body)
     //    Kept separate from appContainer so portals never clip inside the React tree
     const portalsContainer = document.createElement('div');
     portalsContainer.setAttribute('data-slot', 'portals');
@@ -65,7 +70,7 @@ class SkyScannerApplication {
     this.root.render(
       <StrictMode>
         <ShadowPortalProvider container={portalsContainer}>
-          <App />
+          <App shadowHost={this.hostInstance} />
         </ShadowPortalProvider>
       </StrictMode>,
     );

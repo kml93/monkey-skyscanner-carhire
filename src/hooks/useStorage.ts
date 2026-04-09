@@ -78,6 +78,14 @@ export function useExcludedSuppliers() {
     [updatePreferences],
   );
 
+  const commitPreferences = useCallback(
+    (prefs: Map<string, SupplierPreference>) => {
+      setPreferences(prefs);
+      StorageService.setExcludedSuppliers(prefs);
+    },
+    [],
+  );
+
   const excludedCount = Array.from(preferences.values()).filter((p) => p.excluded).length;
 
   return {
@@ -85,6 +93,7 @@ export function useExcludedSuppliers() {
     toggleSupplier,
     excludeAll,
     includeAll,
+    commitPreferences,
     excludedCount,
   };
 }
@@ -118,12 +127,16 @@ export function useAutoConfig() {
     [],
   );
 
-  const resetConfig = useCallback(() => {
-    setConfig(DEFAULT_AUTO_CONFIG);
-    StorageService.setAutoConfig(DEFAULT_AUTO_CONFIG);
+  const commitConfig = useCallback((fullConfig: AutoConfig) => {
+    setConfig(fullConfig);
+    StorageService.setAutoConfig(fullConfig);
   }, []);
 
-  return { config, updateConfig, resetConfig };
+  const resetConfig = useCallback(() => {
+    commitConfig(DEFAULT_AUTO_CONFIG);
+  }, [commitConfig]);
+
+  return { config, updateConfig, resetConfig, commitConfig };
 }
 
 // ---------------------------------------------------------------------------
