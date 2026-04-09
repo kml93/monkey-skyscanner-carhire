@@ -21,11 +21,14 @@ export function useSkyscannerState() {
   /**
    * Refreshes supplier data.
    * Uses SupplierRegistry as primary source, falls back to DOM scraping.
+   *
+   * Uses requestIdleCallback to defer the refresh until the browser is idle,
+   * preventing jank during initial page load or state transitions.
    */
   const refresh = useCallback(() => {
     setLoading(true);
 
-    requestAnimationFrame(() => {
+    requestIdleCallback(() => {
       // Primary: registry data (always available, no DOM dependency)
       const registryData = SupplierRegistry.getAll();
 
@@ -52,7 +55,7 @@ export function useSkyscannerState() {
       }
 
       setLoading(false);
-    });
+    }, { timeout: 2000 });
   }, []);
 
   // Initial scrape on mount

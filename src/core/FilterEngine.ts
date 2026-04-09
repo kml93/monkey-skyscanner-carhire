@@ -6,8 +6,9 @@
  *
  * Current implementation: ExclusionStrategy (all included, exclude specific).
  *
- * Execution is batched — all unchecks happen in a single requestAnimationFrame
- * to avoid triggering Skyscanner's anti-bot per-click detection.
+ * Execution is chunked via requestIdleCallback — clicks are spread across
+ * multiple idle periods to avoid blocking the Main Thread and prevent Chrome
+ * [Violation] warnings. Each click happens when the browser has free time.
  *
  * Single Responsibility: only handles the mechanical DOM checkbox manipulation.
  */
@@ -65,8 +66,12 @@ export class FilterEngine {
    *
    * Flow:
    * 1. Compute which supplier IDs should be unchecked
-   * 2. Batch all unchecks in a single requestAnimationFrame
+   * 2. Process clicks in chunks via requestIdleCallback
    * 3. Each uncheck targets the `<input>` directly (not the `<label>`)
+   *
+   * Chunking strategy: Process one checkbox per idle period, respecting
+   * deadline.timeRemaining(). If the deadline expires before all IDs are
+   * processed, reschedule for the next idle period.
    *
    * @param preferences User's supplier preferences from storage
    */
@@ -85,11 +90,15 @@ export class FilterEngine {
       return;
     }
 
-    // Batch execution in a single animation frame
-    requestAnimationFrame(() => {
-      let uncheckedCount = 0;
+    // Chunk execution via requestIdleCallback — process checkboxes
+    // one by one during browser idle periods
+    const totalToProcess = idsToUncheck.length;
+    let processedCount = 0;
 
-      for (const id of idsToUncheck) {
+    const processChunk = (deadline: IdleDeadline): void => {
+      // Process checkboxes while we have time and IDs remaining
+      while (deadline.timeRemaining() > 0 && idsToUncheck.length > 0) {
+        const id = idsToUncheck.shift()!;
         const checkbox = document.querySelector<HTMLInputElement>(
           SELECTORS.supplier.checkbox(id),
         );
@@ -99,11 +108,23 @@ export class FilterEngine {
         if (!checkbox.checked) continue;
 
         checkbox.click();
-        uncheckedCount++;
+        processedCount++;
       }
 
-      Logger.info(`Batch excluded ${uncheckedCount} supplier(s).`);
-    });
+      // If there are remaining IDs, reschedule for next idle period
+      if (idsToUncheck.length > 0) {
+        requestIdleCallback(processChunk, { timeout: 1000 });
+      } else {
+        Logger.info(
+          `Chunked excluded ${processedCount}/${totalToProcess} supplier(s) ` +
+          `via requestIdleCallback.`,
+        );
+      }
+    };
+
+    // Start processing with a 1s safety timeout (forces execution if
+    // the browser never becomes idle)
+    requestIdleCallback(processChunk, { timeout: 1000 });
   }
 
   /**

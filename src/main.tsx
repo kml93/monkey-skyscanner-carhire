@@ -1,3 +1,4 @@
+import { registerRequestIdleCallbackPolyfill } from './core/polyfills';
 import { StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import App from './App';
@@ -5,6 +6,9 @@ import { ShadowPortalProvider } from './contexts/ShadowPortalContext';
 import './fonts.css';
 import './index.css';
 import styleString from './index.css?inline';
+
+// Register polyfills before any feature code runs
+registerRequestIdleCallbackPolyfill();
 
 /**
  * 1. Definition of the Custom Element

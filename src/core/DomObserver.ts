@@ -16,12 +16,18 @@ export class DomObserver {
   private static urlObserverInterval: ReturnType<typeof setInterval> | null = null;
   private static lastKnownUrl: string = '';
   private static callbacks: Set<NavigationCallback> = new Set();
+  private static appRoot: Element | null = null;
 
   /**
    * Starts observing for SPA navigation (URL changes).
    */
   static start(): void {
     if (this.urlObserverInterval) return;
+
+    // Initialize app root for scoped queries (C1)
+    this.appRoot = document.querySelector('[data-testid="side-container-filters-container"]') ||
+                   document.querySelector('[data-testid="car-hire-results"]') ||
+                   document.querySelector('#app-root');
 
     this.lastKnownUrl = window.location.href;
 
@@ -43,6 +49,7 @@ export class DomObserver {
       this.urlObserverInterval = null;
     }
     this.callbacks.clear();
+    this.appRoot = null;
   }
 
   /** Registers a callback to be invoked on SPA navigation. */
@@ -67,33 +74,52 @@ export class DomObserver {
 
   /**
    * Waits for a specific element to appear in the DOM.
+   * Uses MutationObserver instead of polling (C3 - reactive DOM observation).
    */
   static waitForElement(
     selector: string,
     timeoutMs = 10_000,
-    intervalMs = 200,
   ): Promise<Element> {
     return new Promise((resolve, reject) => {
-      const existing = document.querySelector(selector);
+      // Check immediately first
+      const existing = (this.appRoot || document).querySelector(selector);
       if (existing) {
         resolve(existing);
         return;
       }
 
-      const startTime = Date.now();
-      const poll = setInterval(() => {
-        const el = document.querySelector(selector);
+      // Use MutationObserver to react to DOM changes (C3)
+      const observer = new MutationObserver(() => {
+        const el = (this.appRoot || document).querySelector(selector);
         if (el) {
-          clearInterval(poll);
+          // Clear timeout if element is found
+          const timeoutId = (observer as unknown as { _timeoutId: ReturnType<typeof setTimeout> })._timeoutId;
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          observer.disconnect();
           resolve(el);
-          return;
         }
+      });
 
-        if (Date.now() - startTime > timeoutMs) {
-          clearInterval(poll);
-          reject(new Error(`Element not found: ${selector} (timeout: ${timeoutMs}ms)`));
-        }
-      }, intervalMs);
+      // Observe the scoped root or document as fallback
+      const target = this.appRoot || document;
+      const observeOptions: MutationObserverInit = {
+        childList: true,
+        subtree: true,
+      };
+
+      // If observing document, we need to specify the root node
+      observer.observe(target === document ? document.documentElement : target, observeOptions);
+
+      // Timeout fallback
+      const timeoutId = setTimeout(() => {
+        observer.disconnect();
+        reject(new Error(`Element not found: ${selector} (timeout: ${timeoutMs}ms)`));
+      }, timeoutMs);
+
+      // Store timeout ID for cleanup if element is found
+      (observer as unknown as { _timeoutId: ReturnType<typeof setTimeout> })._timeoutId = timeoutId;
     });
   }
 }

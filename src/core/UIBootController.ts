@@ -21,6 +21,7 @@ import type { AutoConfig } from './types';
 export class UIBootController {
   private static booted = false;
   private static isWaiting = false;
+  private static appRoot: Element | null = null;
 
   /**
    * Runs the full boot sequence.
@@ -31,6 +32,11 @@ export class UIBootController {
     this.isWaiting = true;
 
     try {
+      // Initialize the app root container once (C1 - scope reduction)
+      this.appRoot = document.querySelector(SELECTORS.sidebar.container) ||
+                     document.querySelector('[data-testid="car-hire-results"]') ||
+                     document.querySelector('#app-root');
+
       // Wait for the sidebar to be present in the DOM
       await DomObserver.waitForElement(SELECTORS.sidebar.container, 15_000);
 
@@ -59,6 +65,7 @@ export class UIBootController {
   static reset(): void {
     this.booted = false;
     this.isWaiting = false;
+    this.appRoot = null;
   }
 
   /** Returns whether the boot sequence has completed. */
@@ -70,30 +77,73 @@ export class UIBootController {
 
   /**
    * Waits for all Skyscanner loading indicators to disappear from the DOM.
+   *
+   * Uses MutationObserver instead of polling — zero CPU when DOM is stable.
+   * Reactively detects when loaders are removed, then verifies stability
+   * with a debounced check to avoid expensive querySelector calls during
+   * active DOM mutations.
    */
   private static waitTillReady(): Promise<void> {
+    const target = this.appRoot instanceof Element ? this.appRoot : document.documentElement;
+
+    // Fast path: ID lookup is O(1) via browser internal hash map
+    const hasProgressBar = (): boolean => !!document.getElementById('results-loading-bar');
+
+    // Class-wildcard selectors — expensive, scoped to subtree
+    const hasSpinner = (): boolean => !!target.querySelector(
+      `${SELECTORS.loaders.spinnerPanel}, ${SELECTORS.loaders.spinnerContainer}`,
+    );
+
+    const isBusy = (): boolean => hasProgressBar() || hasSpinner();
+
     return new Promise((resolve) => {
-      const checkDelay = 200;
+      // Immediate check — skip observer if already clean
+      if (!isBusy()) {
+        resolve();
+        return;
+      }
+
+      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
       let stabilityCount = 0;
-      const requiredStability = 2; // Needs to be clean for 400ms
+      const requiredStability = 2;
 
-      const interval = setInterval(() => {
-        const hasProgressBar = !!document.querySelector(SELECTORS.loaders.progressBar);
-        const hasSpinnerPanel = !!document.querySelector(SELECTORS.loaders.spinnerPanel);
-        const hasSpinnerContainer = !!document.querySelector(SELECTORS.loaders.spinnerContainer);
+      const cleanup = () => {
+        observer.disconnect();
+        if (debounceTimer) clearTimeout(debounceTimer);
+      };
 
-        const isBusy = hasProgressBar || hasSpinnerPanel || hasSpinnerContainer;
+      const check = () => {
+        debounceTimer = null;
 
-        if (!isBusy) {
+        if (!isBusy()) {
           stabilityCount++;
           if (stabilityCount >= requiredStability) {
-            clearInterval(interval);
+            cleanup();
             resolve();
+            return;
           }
+          // Re-verify after short delay for stability
+          debounceTimer = setTimeout(check, 300);
         } else {
           stabilityCount = 0;
+          // Loader still present — wait for next DOM mutation
         }
-      }, checkDelay);
+      };
+
+      // Observe DOM mutations — check loaders only when something changes
+      const observer = new MutationObserver(() => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        // Debounce: coalesce rapid mutations into a single check
+        debounceTimer = setTimeout(check, 300);
+      });
+
+      observer.observe(target, { childList: true, subtree: true });
+
+      // Safety timeout — prevent infinite wait
+      setTimeout(() => {
+        cleanup();
+        resolve();
+      }, 15_000);
     });
   }
 
@@ -153,7 +203,12 @@ export class UIBootController {
       return;
     }
 
+    // NOTE: This click triggers a synchronous React re-render (~80-90ms) which
+    // Chrome flags as [Violation]. This is inherent — React must expand and
+    // render the full supplier list. No scheduling trick can avoid it.
+    // The only alternative would be Approach D (API interception).
     selectAllBtn.click();
+
     Logger.info('Clicked "Select all" (expand + check all).');
 
     // Wait for the supplier list to finish rendering
