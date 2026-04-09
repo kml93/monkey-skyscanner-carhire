@@ -48,7 +48,7 @@ export function FloatingIndicator({ excludedCount, onClick }: FloatingIndicatorP
               active:scale-95
               animate-in fade-in zoom-in-50
             "
-            aria-label="Ouvrir le Dashboard Skyscanner"
+            aria-label="Open Skyscanner Dashboard"
           />
         }
       >

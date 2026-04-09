@@ -17,6 +17,31 @@ import { Logger } from './Logger';
 import { SupplierRegistry } from './SupplierRegistry';
 
 // ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface PriceRange {
+  min: number | null;
+}
+
+interface SupplierOption {
+  id: string | number;
+  display_text: string;
+  price_range?: PriceRange;
+}
+
+interface SupplierFilter {
+  filter_type: string;
+  string_value_filter?: {
+    options?: SupplierOption[];
+  };
+}
+
+interface SkyscannerApiResponse {
+  filters?: SupplierFilter[];
+}
+
+// ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
@@ -74,7 +99,7 @@ export class ApiInterceptor {
 
       try {
         const text = await response.clone().text();
-        const data = JSON.parse(text) as Record<string, unknown>;
+        const data = JSON.parse(text) as SkyscannerApiResponse;
         Logger.info(
           `ApiInterceptor: captured carhire-quotes response (${Object.keys(data).join(', ')}).`,
         );

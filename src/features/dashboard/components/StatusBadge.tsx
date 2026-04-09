@@ -16,7 +16,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         variant="destructive"
         className="text-[10px] px-1.5 py-0 h-5 font-semibold"
       >
-        Exclu
+        Excluded
       </Badge>
     );
   }
@@ -26,7 +26,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       variant="secondary"
       className="text-[10px] px-1.5 py-0 h-5 font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
     >
-      Inclus
+      Included
     </Badge>
   );
 }

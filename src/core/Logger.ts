@@ -16,19 +16,19 @@ export class Logger {
     return `[${h}:${m}:${s}]`;
   }
 
-  static info(message: string, ...args: any[]): void {
+  static info(message: string, ...args: unknown[]): void {
     console.info(`${this.prefix}${this.getTime()} INFO: ${message}`, ...args);
   }
 
-  static warn(message: string, ...args: any[]): void {
+  static warn(message: string, ...args: unknown[]): void {
     console.warn(`${this.prefix}${this.getTime()} WARN: ${message}`, ...args);
   }
 
-  static error(message: string, ...args: any[]): void {
+  static error(message: string, ...args: unknown[]): void {
     console.error(`${this.prefix}${this.getTime()} ERROR: ${message}`, ...args);
   }
 
-  static debug(message: string, ...args: any[]): void {
+  static debug(message: string, ...args: unknown[]): void {
     if (import.meta.env.DEV) {
       console.debug(`${this.prefix}${this.getTime()} DEBUG: ${message}`, ...args);
     }

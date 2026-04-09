@@ -19,6 +19,7 @@ export class DomObserver {
   private static lastKnownUrl: string = '';
   private static callbacks: Set<NavigationCallback> = new Set();
   private static appRoot: Element | null = null;
+  private static observerTimeouts = new Map<MutationObserver, ReturnType<typeof setTimeout>>();
 
   /**
    * Starts observing for SPA navigation (URL changes).
@@ -53,6 +54,7 @@ export class DomObserver {
     }
     this.callbacks.clear();
     this.appRoot = null;
+    this.observerTimeouts.clear();
   }
 
   /** Registers a callback to be invoked on SPA navigation. */
@@ -97,9 +99,10 @@ export class DomObserver {
         if (!el) return;
 
         // Clear timeout if element is found
-        const timeoutId = (observer as unknown as { _timeoutId: ReturnType<typeof setTimeout> })._timeoutId;
+        const timeoutId = this.observerTimeouts.get(observer);
         if (timeoutId) {
           clearTimeout(timeoutId);
+          this.observerTimeouts.delete(observer);
         }
         observer.disconnect();
         resolve(el);
@@ -117,12 +120,13 @@ export class DomObserver {
 
       // Timeout fallback
       const timeoutId = setTimeout(() => {
+        this.observerTimeouts.delete(observer);
         observer.disconnect();
         reject(new Error(`Element not found: ${selector} (timeout: ${timeoutMs}ms)`));
       }, timeoutMs);
 
       // Store timeout ID for cleanup if element is found
-      (observer as unknown as { _timeoutId: ReturnType<typeof setTimeout> })._timeoutId = timeoutId;
+      this.observerTimeouts.set(observer, timeoutId);
     });
   }
 }

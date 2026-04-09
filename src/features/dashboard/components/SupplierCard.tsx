@@ -54,7 +54,7 @@ export function SupplierCard({
         onClick={onToggle}
         className="text-xs h-7 px-2.5 flex-shrink-0"
       >
-        {excluded ? 'Inclure' : 'Exclure'}
+        {excluded ? 'Include' : 'Exclude'}
       </Button>
     </div>
   );

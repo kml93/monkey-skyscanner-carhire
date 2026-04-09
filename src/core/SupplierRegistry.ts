@@ -20,6 +20,31 @@ import { StorageService } from './StorageService';
 import type { SupplierEntry, SupplierStatus } from './types';
 
 // ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface PriceRange {
+  min: number | null;
+}
+
+interface SupplierOption {
+  id: string | number;
+  display_text: string;
+  price_range?: PriceRange;
+}
+
+interface SupplierFilter {
+  filter_type: string;
+  string_value_filter?: {
+    options?: SupplierOption[];
+  };
+}
+
+interface SkyscannerApiResponse {
+  filters?: SupplierFilter[];
+}
+
+// ---------------------------------------------------------------------------
 // Supplier Registry
 // ---------------------------------------------------------------------------
 
@@ -53,26 +78,25 @@ export class SupplierRegistry {
    * Accumulates across sessions — new suppliers are added, existing updated.
    * Preserves existing status when updating an entry.
    */
-  static captureFromResponse(data: Record<string, unknown>): void {
+  static captureFromResponse(data: SkyscannerApiResponse): void {
     const filters = data?.filters;
     if (!Array.isArray(filters)) return;
 
     const supplierFilter = filters.find(
-      (f: Record<string, unknown>) => f.filter_type === 'filter_type_suppliers',
+      (f: SupplierFilter) => f.filter_type === 'filter_type_suppliers',
     );
     if (!supplierFilter) return;
 
-    const options = (supplierFilter as Record<string, unknown>)?.string_value_filter &&
-      ((supplierFilter as Record<string, Record<string, unknown>>).string_value_filter as Record<string, unknown>)?.options;
+    const options = supplierFilter?.string_value_filter?.options;
     if (!Array.isArray(options)) return;
 
     const updateState = { updated: false };
 
-    (options as Array<Record<string, unknown>>).forEach((opt) => {
+    options.forEach((opt) => {
       const id = String(opt.id);
       const name = String(opt.display_text ?? '');
-      const minPrice = (opt.price_range as Record<string, unknown> | undefined)?.min != null
-        ? Number((opt.price_range as Record<string, unknown>).min)
+      const minPrice = opt.price_range?.min != null
+        ? Number(opt.price_range.min)
         : null;
 
       const existing = this.suppliers.get(id);
