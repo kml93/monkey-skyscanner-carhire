@@ -112,12 +112,12 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, s
   const handleApply = useCallback(async () => {
     onCommit(draftConfig, draftSuppliers);
 
-    if (!draftConfig.apiFilter) {
-      await FilterEngine.apply();
-    } else {
+    if (draftConfig.apiFilter) {
       // Stealth mode: ensure interceptor is installed before re-fetch
       // so the sort toggle API call is intercepted with updated data
       ApiInterceptor.install();
+    } else {
+      await FilterEngine.apply();
     }
 
     await UIBootController.triggerRefetch();

@@ -91,15 +91,15 @@ export class DomObserver {
       // Use MutationObserver to react to DOM changes (C3)
       const observer = new MutationObserver(() => {
         const el = (this.appRoot || document).querySelector(selector);
-        if (el) {
-          // Clear timeout if element is found
-          const timeoutId = (observer as unknown as { _timeoutId: ReturnType<typeof setTimeout> })._timeoutId;
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-          observer.disconnect();
-          resolve(el);
+        if (!el) return;
+
+        // Clear timeout if element is found
+        const timeoutId = (observer as unknown as { _timeoutId: ReturnType<typeof setTimeout> })._timeoutId;
+        if (timeoutId) {
+          clearTimeout(timeoutId);
         }
+        observer.disconnect();
+        resolve(el);
       });
 
       // Observe the scoped root or document as fallback

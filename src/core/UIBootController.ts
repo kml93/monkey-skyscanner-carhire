@@ -110,19 +110,20 @@ export class UIBootController {
       const check = () => {
         debounceTimer = null;
 
-        if (!isBusy()) {
-          stabilityCount++;
-          if (stabilityCount >= requiredStability) {
-            cleanup();
-            resolve();
-            return;
-          }
-          // Re-verify after short delay for stability
-          debounceTimer = setTimeout(check, 300);
-        } else {
+        if (isBusy()) {
           stabilityCount = 0;
           // Loader still present — wait for next DOM mutation
+          return;
         }
+
+        stabilityCount++;
+        if (stabilityCount >= requiredStability) {
+          cleanup();
+          resolve();
+          return;
+        }
+        // Re-verify after short delay for stability
+        debounceTimer = setTimeout(check, 300);
       };
 
       // Observe DOM mutations — check loaders only when something changes

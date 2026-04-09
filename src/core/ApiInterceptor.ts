@@ -68,20 +68,22 @@ export class ApiInterceptor {
       const response = await self.originalFetch!.apply(this, args);
 
       // Phase 2: Capture RESPONSE — always active (awaited, not fire-and-forget)
-      if (resolved.url.includes(QUOTES_PATH)) {
-        try {
-          const text = await response.clone().text();
-          const data = JSON.parse(text) as Record<string, unknown>;
-          Logger.info(
-            `ApiInterceptor: captured carhire-quotes response (${Object.keys(data).join(', ')}).`,
-          );
-          SupplierRegistry.captureFromResponse(data);
-        } catch (err) {
-          if (err instanceof DOMException && err.name === 'AbortError') {
-            // Expected during Skyscanner polling — skip silently
-          } else {
-            Logger.warn(`ApiInterceptor: response capture failed — ${String(err)}.`);
-          }
+      if (!resolved.url.includes(QUOTES_PATH)) {
+        return response;
+      }
+
+      try {
+        const text = await response.clone().text();
+        const data = JSON.parse(text) as Record<string, unknown>;
+        Logger.info(
+          `ApiInterceptor: captured carhire-quotes response (${Object.keys(data).join(', ')}).`,
+        );
+        SupplierRegistry.captureFromResponse(data);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          // Expected during Skyscanner polling — skip silently
+        } else {
+          Logger.warn(`ApiInterceptor: response capture failed — ${String(err)}.`);
         }
       }
 
