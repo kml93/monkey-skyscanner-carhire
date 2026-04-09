@@ -6,21 +6,24 @@
 
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from './StatusBadge';
+import type { SupplierStatus } from '@/core/types';
 
 interface SupplierCardProps {
   id: string;
   name: string;
   priceLabel: string;
-  excluded: boolean;
+  status: SupplierStatus;
   onToggle: () => void;
 }
 
 export function SupplierCard({
   name,
   priceLabel,
-  excluded,
+  status,
   onToggle,
 }: SupplierCardProps) {
+  const excluded = status === 'excluded';
+
   return (
     <div
       className={`
@@ -36,7 +39,7 @@ export function SupplierCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium truncate">{name}</span>
-          <StatusBadge excluded={excluded} />
+          <StatusBadge status={status} />
         </div>
         {priceLabel && (
           <span className="text-xs text-muted-foreground mt-0.5 block">

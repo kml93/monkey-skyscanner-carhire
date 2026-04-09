@@ -7,15 +7,14 @@
  *      This populates the Dashboard with all available suppliers without DOM dependency.
  *
  *   2. REQUEST FILTERING (only when filterEnabled = true):
- *      Builds `filters=suppliers:...` from SupplierRegistry (registry IDs minus
- *      user exclusions), replacing the existing param. Controlled by config.apiFilter.
+ *      Builds `filters=suppliers:...` from SupplierRegistry (included entries only),
+ *      replacing the existing param. Controlled by config.apiFilter.
  *
  * Single Responsibility: only handles fetch interception and URL transformation.
  */
 
 import { Logger } from './Logger';
 import { SupplierRegistry } from './SupplierRegistry';
-import type { SupplierPreference } from './types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -38,22 +37,17 @@ export class ApiInterceptor {
   /** Whether request filtering is active (config.apiFilter). */
   private static filterEnabled = false;
 
-  /** Set of excluded vendor IDs (numeric string → true). */
-  private static excludedVndrIds: Set<string> = new Set();
-
   // ── Lifecycle ───────────────────────────────────────────────────────────
 
   /**
    * Installs the fetch interceptor.
-   * Idempotent — safe to call multiple times (updates preferences only).
+   * Idempotent — safe to call multiple times.
    *
    * Always captures responses. Request filtering is controlled by setFilterEnabled().
+   * Uses SupplierRegistry directly for exclusion data.
    */
-  static install(preferences: Map<string, SupplierPreference>): void {
-    this.updateExclusions(preferences);
-
+  static install(): void {
     if (this.installed) {
-      Logger.info('ApiInterceptor: preferences updated.');
       return;
     }
 
@@ -119,19 +113,6 @@ export class ApiInterceptor {
     Logger.info(`ApiInterceptor: request filtering ${enabled ? 'enabled' : 'disabled'}.`);
   }
 
-  /** Updates the exclusion set from the latest preferences. */
-  static updateExclusions(preferences: Map<string, SupplierPreference>): void {
-    const ids = new Set<string>();
-
-    for (const [, pref] of preferences) {
-      if (pref.excluded) {
-        ids.add(pref.id);
-      }
-    }
-
-    this.excludedVndrIds = ids;
-  }
-
   /** Whether the interceptor is currently active. */
   static isActive(): boolean {
     return this.installed;
@@ -145,7 +126,7 @@ export class ApiInterceptor {
    * Strategy:
    *   - Registry empty  → pass through (cold start, will populate from response)
    *   - No exclusions   → pass through (nothing to filter)
-   *   - Has exclusions  → build filters = registry IDs minus excluded IDs
+   *   - Has exclusions  → build filters = included IDs from registry
    *
    * Returns a new args array; does not mutate the original.
    */
@@ -153,14 +134,7 @@ export class ApiInterceptor {
     args: Parameters<typeof fetch>,
     resolved: { url: string; isRequest: boolean },
   ): Parameters<typeof fetch> {
-    const allIds = SupplierRegistry.getIds();
-    if (allIds.length === 0) return args;
-
-    const excluded = this.excludedVndrIds;
-    if (excluded.size === 0) return args;
-
-    const includedIds = allIds.filter((id) => !excluded.has(id));
-
+    const includedIds = SupplierRegistry.getIncludedIds();
     if (includedIds.length === 0) return args;
 
     try {
@@ -168,7 +142,7 @@ export class ApiInterceptor {
       url.searchParams.set('filters', `${SUPPLIERS_FILTER_PREFIX}${includedIds.join(',')}`);
 
       Logger.info(
-        `ApiInterceptor: filtered ${excluded.size} excluded vendor(s), passing ${includedIds.length} supplier(s).`,
+        `ApiInterceptor: passing ${includedIds.length} included supplier(s).`,
       );
 
       // Rebuild args with modified URL

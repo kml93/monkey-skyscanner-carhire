@@ -2,14 +2,11 @@
  * React hook that provides supplier data from the SupplierRegistry.
  *
  * Primary source: SupplierRegistry (captured from API responses, no DOM dependency).
- * Fallback: DOM scraping via FilterEngine.scrapeSuppliers() (cold start only).
- *
  * Also reads total result count from the DOM banner text.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 
-import { FilterEngine } from '@/core/FilterEngine';
 import { SupplierRegistry } from '@/core/SupplierRegistry';
 import type { Supplier } from '@/core/types';
 
@@ -19,8 +16,7 @@ export function useSkyscannerState() {
   const [loading, setLoading] = useState(true);
 
   /**
-   * Refreshes supplier data.
-   * Uses SupplierRegistry as primary source, falls back to DOM scraping.
+   * Refreshes supplier data from SupplierRegistry.
    *
    * Uses requestIdleCallback to defer the refresh until the browser is idle,
    * preventing jank during initial page load or state transitions.
@@ -29,23 +25,17 @@ export function useSkyscannerState() {
     setLoading(true);
 
     requestIdleCallback(() => {
-      // Primary: registry data (always available, no DOM dependency)
+      // Registry data (always available, no DOM dependency)
       const registryData = SupplierRegistry.getAll();
 
-      if (registryData.size > 0) {
-        const mapped: Supplier[] = Array.from(registryData.values()).map((info) => ({
-          id: info.id,
-          name: info.name,
-          priceLabel: info.minPrice !== null ? `from ${info.minPrice} €` : '',
-          price: info.minPrice ?? 0,
-          checked: true,
-        }));
-        setSuppliers(mapped);
-      } else {
-        // Fallback: DOM scraping (cold start before first API response)
-        const scraped = FilterEngine.scrapeSuppliers();
-        setSuppliers(scraped);
-      }
+      const mapped: Supplier[] = Array.from(registryData.values()).map((entry) => ({
+        id: entry.id,
+        name: entry.name,
+        priceLabel: entry.minPrice !== null ? `from ${entry.minPrice} €` : '',
+        price: entry.minPrice ?? 0,
+        checked: true,
+      }));
+      setSuppliers(mapped);
 
       // Total results from banner (DOM-dependent, non-critical)
       const bannerText = document.querySelector('[data-testid="sort-by-banner"]')?.textContent ?? '';
@@ -58,7 +48,7 @@ export function useSkyscannerState() {
     }, { timeout: 2000 });
   }, []);
 
-  // Initial scrape on mount
+  // Initial refresh on mount
   useEffect(() => {
     // Delay to ensure UIBootController has completed
     const timer = setTimeout(refresh, 2_000);

@@ -26,24 +26,19 @@ export interface Supplier {
 /** Available sorting options for the suppliers list. */
 export type SortOption = 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
 
-/** Persisted user preference for a single supplier. */
-export interface SupplierPreference {
-  /** Skyscanner internal numeric ID. */
-  readonly id: string;
-  /** Display name snapshot at the time of saving. */
-  readonly name: string;
-  /** Whether this supplier is excluded from results. */
-  excluded: boolean;
-}
+/** Supplier inclusion/exclusion status. */
+export type SupplierStatus = 'included' | 'excluded';
 
-/** Supplier data captured from carhire-quotes API response. */
-export interface SupplierInfo {
+/** Single source of truth for a supplier. */
+export interface SupplierEntry {
   /** Skyscanner internal numeric ID. */
   readonly id: string;
   /** Display name (e.g. "Eren Rent a Car"). */
   readonly name: string;
   /** Minimum price from price_range.min, null if unavailable. */
   readonly minPrice: number | null;
+  /** Current inclusion/exclusion status. */
+  status: SupplierStatus;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,14 +78,12 @@ export const DEFAULT_AUTO_CONFIG: AutoConfig = {
 
 /** Centralized storage key constants to avoid magic strings. */
 export const STORAGE_KEYS = {
-  /** Map of supplier ID → SupplierPreference. */
-  EXCLUDED_SUPPLIERS: 'skyscanner_excluded_suppliers',
+  /** Map of supplier ID → SupplierEntry. */
+  SUPPLIERS: 'skyscanner_suppliers',
   /** AutoConfig object. */
   AUTO_CONFIG: 'skyscanner_auto_config',
   /** Theme preference: 'light' | 'dark'. */
   THEME: 'skyscanner_theme',
-  /** Map of supplier ID → SupplierInfo (captured from API responses). */
-  SUPPLIER_REGISTRY: 'skyscanner_supplier_registry',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
@@ -113,10 +106,10 @@ export interface FilterStrategy {
   readonly label: string;
 
   /**
-   * Given the full list of supplier IDs and user preferences,
+   * Given the full list of supplier IDs and user entries,
    * returns the IDs that should be UNCHECKED in the DOM.
    */
-  computeUncheckedIds(allSupplierIds: string[], preferences: Map<string, SupplierPreference>): string[];
+  computeUncheckedIds(allSupplierIds: string[], entries: Map<string, SupplierEntry>): string[];
 }
 
 // ---------------------------------------------------------------------------

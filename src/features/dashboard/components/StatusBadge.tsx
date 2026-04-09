@@ -3,13 +3,14 @@
  */
 
 import { Badge } from '@/components/ui/badge';
+import type { SupplierStatus } from '@/core/types';
 
 interface StatusBadgeProps {
-  excluded: boolean;
+  status: SupplierStatus;
 }
 
-export function StatusBadge({ excluded }: StatusBadgeProps) {
-  if (excluded) {
+export function StatusBadge({ status }: StatusBadgeProps) {
+  if (status === 'excluded') {
     return (
       <Badge
         variant="destructive"

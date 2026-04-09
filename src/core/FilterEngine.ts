@@ -14,8 +14,9 @@
  */
 
 import { Logger } from './Logger';
+import { SupplierRegistry } from './SupplierRegistry';
 import { SELECTORS } from './selectors';
-import type { FilterStrategy, Supplier, SupplierPreference } from './types';
+import type { FilterStrategy, SupplierEntry } from './types';
 
 // ---------------------------------------------------------------------------
 // Default Exclusion Strategy
@@ -28,11 +29,11 @@ import type { FilterStrategy, Supplier, SupplierPreference } from './types';
 export class ExclusionStrategy implements FilterStrategy {
   readonly label = 'Exclusion (all included, exclude specific)';
 
-  computeUncheckedIds(_allSupplierIds: string[], preferences: Map<string, SupplierPreference>): string[] {
+  computeUncheckedIds(_allSupplierIds: string[], entries: Map<string, SupplierEntry>): string[] {
     const unchecked: string[] = [];
 
-    for (const [id, pref] of preferences) {
-      if (pref.excluded) {
+    for (const [id, entry] of entries) {
+      if (entry.status === 'excluded') {
         unchecked.push(id);
       }
     }
@@ -70,10 +71,11 @@ export class FilterEngine {
    * deadline.timeRemaining(). If the deadline expires before all IDs are
    * processed, reschedule for the next idle period.
    *
-   * @param preferences User's supplier preferences from storage
+   * Uses SupplierRegistry directly for supplier data.
+   *
    * @returns Promise that resolves when all checkboxes are processed
    */
-  static apply(preferences: Map<string, SupplierPreference>): Promise<void> {
+  static apply(): Promise<void> {
     return new Promise((resolve) => {
       const allSupplierIds = this.scrapeSupplierIds();
 
@@ -83,7 +85,7 @@ export class FilterEngine {
         return;
       }
 
-      const idsToUncheck = this.strategy.computeUncheckedIds(allSupplierIds, preferences);
+      const idsToUncheck = this.strategy.computeUncheckedIds(allSupplierIds, SupplierRegistry.getAll());
 
       if (idsToUncheck.length === 0) {
         Logger.info('No suppliers to exclude.');
@@ -123,48 +125,6 @@ export class FilterEngine {
       // the browser never becomes idle)
       requestIdleCallback(processChunk, { timeout: 1000 });
     });
-  }
-
-  /**
-   * Scrapes all currently visible supplier checkboxes from the DOM.
-   * Returns structured Supplier data for UI rendering.
-   */
-  static scrapeSuppliers(): Supplier[] {
-    const checkboxes = document.querySelectorAll<HTMLInputElement>(SELECTORS.supplier.anyCheckbox);
-
-    const suppliers: Supplier[] = [];
-    const seenIds = new Set<string>();
-
-    for (const cb of checkboxes) {
-      const testId = cb.getAttribute('data-testid') ?? '';
-      // Extract numeric ID from "supplier-{ID}-checkbox"
-      const match = testId.match(/^supplier-(\d+)-checkbox$/);
-      if (!match) continue;
-
-      const id = match[1];
-
-      // Deduplicate — popular suppliers appear twice
-      if (seenIds.has(id)) continue;
-      seenIds.add(id);
-
-      // Get name and price from dedicated data-testid elements
-      const nameEl = document.querySelector(SELECTORS.supplier.name(id));
-      const priceEl = document.querySelector(SELECTORS.supplier.price(id));
-      const priceLabel = priceEl?.textContent?.trim() ?? '';
-
-      // Parse numerical price for sorting (remove currency symbols, spaces, etc.)
-      const price = parseInt(priceLabel.replace(/[^\d]/g, ''), 10) || 0;
-
-      suppliers.push({
-        id,
-        name: nameEl?.textContent?.trim() ?? `Supplier #${id}`,
-        priceLabel,
-        price,
-        checked: cb.checked,
-      });
-    }
-
-    return suppliers;
   }
 
   // ── Internal ───────────────────────────────────────────────────────────

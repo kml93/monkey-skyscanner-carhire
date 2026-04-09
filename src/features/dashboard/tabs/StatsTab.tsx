@@ -11,24 +11,24 @@ import {
 } from '@phosphor-icons/react';
 
 import { Separator } from '@/components/ui/separator';
-import type { Supplier, SupplierPreference } from '@/core/types';
+import type { Supplier, SupplierEntry } from '@/core/types';
 
 interface StatsTabProps {
   suppliers: Supplier[];
-  preferences: Map<string, SupplierPreference>;
+  suppliersMap: Map<string, SupplierEntry>;
   totalResults: number;
 }
 
-export function StatsTab({ suppliers, preferences, totalResults }: StatsTabProps) {
+export function StatsTab({ suppliers, suppliersMap, totalResults }: StatsTabProps) {
   const totalSuppliers = suppliers.length;
   const excludedCount = suppliers.filter(
-    (s) => preferences.get(s.id)?.excluded,
+    (s) => suppliersMap.get(s.id)?.status === 'excluded',
   ).length;
   const includedCount = totalSuppliers - excludedCount;
 
   // Find cheapest included supplier
   const cheapestIncluded = suppliers
-    .filter((s) => !(preferences.get(s.id)?.excluded))
+    .filter((s) => suppliersMap.get(s.id)?.status === 'included')
     .sort((a, b) => {
       const priceA = extractPrice(a.priceLabel);
       const priceB = extractPrice(b.priceLabel);
@@ -87,7 +87,7 @@ export function StatsTab({ suppliers, preferences, totalResults }: StatsTabProps
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {suppliers
-              .filter((s) => preferences.get(s.id)?.excluded)
+              .filter((s) => suppliersMap.get(s.id)?.status === 'excluded')
               .map((s) => (
                 <span
                   key={s.id}

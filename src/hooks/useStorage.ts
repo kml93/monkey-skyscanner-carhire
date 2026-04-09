@@ -8,92 +8,39 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { StorageService } from '@/core/StorageService';
-import { type AutoConfig, DEFAULT_AUTO_CONFIG, type SupplierPreference } from '@/core/types';
+import { type AutoConfig, DEFAULT_AUTO_CONFIG, type SupplierEntry } from '@/core/types';
 
 // ---------------------------------------------------------------------------
-// useExcludedSuppliers
+// useSuppliers
 // ---------------------------------------------------------------------------
 
-export function useExcludedSuppliers() {
-  const [preferences, setPreferences] = useState<Map<string, SupplierPreference>>(
-    () => StorageService.getExcludedSuppliers(),
+export function useSuppliers() {
+  const [suppliers, setSuppliers] = useState<Map<string, SupplierEntry>>(
+    () => StorageService.getSuppliers(),
   );
 
   // Cross-tab sync
   useEffect(() => {
-    const listenerId = StorageService.onSuppliersChanged((newPrefs, remote) => {
-      if (remote) setPreferences(newPrefs);
+    const listenerId = StorageService.onSuppliersChanged((newSuppliers, remote) => {
+      if (remote) setSuppliers(newSuppliers);
     });
 
     return () => StorageService.unsubscribe(listenerId);
   }, []);
 
-  const updatePreferences = useCallback(
-    (updater: (prev: Map<string, SupplierPreference>) => Map<string, SupplierPreference>) => {
-      setPreferences((prev) => {
-        const next = updater(new Map(prev));
-        StorageService.setExcludedSuppliers(next);
-        return next;
-      });
+  const commitSuppliers = useCallback(
+    (newSuppliers: Map<string, SupplierEntry>) => {
+      setSuppliers(newSuppliers);
+      StorageService.setSuppliers(newSuppliers);
     },
     [],
   );
 
-  const toggleSupplier = useCallback(
-    (id: string, name: string) => {
-      updatePreferences((prev) => {
-        const existing = prev.get(id);
-        prev.set(id, {
-          id,
-          name,
-          excluded: !(existing?.excluded ?? false),
-        });
-        return prev;
-      });
-    },
-    [updatePreferences],
-  );
-
-  const excludeAll = useCallback(
-    (suppliers: Array<{ id: string; name: string }>) => {
-      updatePreferences((prev) => {
-        for (const s of suppliers) {
-          prev.set(s.id, { id: s.id, name: s.name, excluded: true });
-        }
-        return prev;
-      });
-    },
-    [updatePreferences],
-  );
-
-  const includeAll = useCallback(
-    () => {
-      updatePreferences((prev) => {
-        for (const [, pref] of prev) {
-          pref.excluded = false;
-        }
-        return prev;
-      });
-    },
-    [updatePreferences],
-  );
-
-  const commitPreferences = useCallback(
-    (prefs: Map<string, SupplierPreference>) => {
-      setPreferences(prefs);
-      StorageService.setExcludedSuppliers(prefs);
-    },
-    [],
-  );
-
-  const excludedCount = Array.from(preferences.values()).filter((p) => p.excluded).length;
+  const excludedCount = Array.from(suppliers.values()).filter((s) => s.status === 'excluded').length;
 
   return {
-    preferences,
-    toggleSupplier,
-    excludeAll,
-    includeAll,
-    commitPreferences,
+    suppliers,
+    commitSuppliers,
     excludedCount,
   };
 }

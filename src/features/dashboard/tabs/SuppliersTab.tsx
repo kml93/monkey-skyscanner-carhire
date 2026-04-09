@@ -25,12 +25,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import type { SortOption, Supplier, SupplierPreference } from '@/core/types';
+import type { SortOption, Supplier, SupplierEntry } from '@/core/types';
 import { SupplierCard } from '../components/SupplierCard';
 
 interface SuppliersTabProps {
   suppliers: Supplier[];
-  preferences: Map<string, SupplierPreference>;
+  suppliersMap: Map<string, SupplierEntry>;
   loading: boolean;
   onToggle: (id: string, name: string) => void;
   onExcludeAll: (suppliers: Array<{ id: string; name: string }>) => void;
@@ -40,7 +40,7 @@ interface SuppliersTabProps {
 
 export function SuppliersTab({
   suppliers,
-  preferences,
+  suppliersMap,
   loading,
   onToggle,
   onExcludeAll,
@@ -68,8 +68,8 @@ export function SuppliersTab({
     // Apply status filter
     if (filterMode !== 'all') {
       result = result.filter((s) => {
-        const excluded = preferences.get(s.id)?.excluded ?? false;
-        return filterMode === 'excluded' ? excluded : !excluded;
+        const status = suppliersMap.get(s.id)?.status ?? 'included';
+        return filterMode === 'excluded' ? status === 'excluded' : status === 'included';
       });
     }
 
@@ -90,10 +90,10 @@ export function SuppliersTab({
     });
 
     return result;
-  }, [suppliers, search, filterMode, preferences, sortOption]);
+  }, [suppliers, search, filterMode, suppliersMap, sortOption]);
 
   const excludedCount = suppliers.filter(
-    (s) => preferences.get(s.id)?.excluded,
+    (s) => suppliersMap.get(s.id)?.status === 'excluded',
   ).length;
 
   return (
@@ -231,7 +231,7 @@ export function SuppliersTab({
                 id={supplier.id}
                 name={supplier.name}
                 priceLabel={supplier.priceLabel}
-                excluded={preferences.get(supplier.id)?.excluded ?? false}
+                status={suppliersMap.get(supplier.id)?.status ?? 'included'}
                 onToggle={() => onToggle(supplier.id, supplier.name)}
               />
             ))}

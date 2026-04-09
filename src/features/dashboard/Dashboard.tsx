@@ -17,7 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ApiInterceptor } from '@/core/ApiInterceptor';
 import { FilterEngine } from '@/core/FilterEngine';
-import { DEFAULT_AUTO_CONFIG, type AutoConfig, type Supplier, type SupplierPreference } from '@/core/types';
+import { DEFAULT_AUTO_CONFIG, type AutoConfig, type Supplier, type SupplierEntry, type SupplierStatus } from '@/core/types';
 import { UIBootController } from '@/core/UIBootController';
 import { AutoConfigTab } from './tabs/AutoConfigTab';
 import { StatsTab } from './tabs/StatsTab';
@@ -30,28 +30,28 @@ interface DashboardProps {
   onTabChange: (tab: string) => void;
   // Committed state (read-only snapshots)
   suppliers: Supplier[];
-  preferences: Map<string, SupplierPreference>;
+  suppliersMap: Map<string, SupplierEntry>;
   loadingSuppliers: boolean;
   config: AutoConfig;
-  // Commit callback — persists draft config + preferences atomically
-  onCommit: (config: AutoConfig, preferences: Map<string, SupplierPreference>) => void;
+  // Commit callback — persists draft config + suppliers atomically
+  onCommit: (config: AutoConfig, suppliers: Map<string, SupplierEntry>) => void;
   // Utilities
   onRefreshSuppliers: () => void;
   totalResults: number;
 }
 
-export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, preferences, loadingSuppliers, config, onCommit, onRefreshSuppliers, totalResults }: DashboardProps) {
+export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, suppliersMap, loadingSuppliers, config, onCommit, onRefreshSuppliers, totalResults }: DashboardProps) {
   // ── Draft State ────────────────────────────────────────────────────────
   const [draftConfig, setDraftConfig] = useState<AutoConfig>(config);
-  const [draftPreferences, setDraftPreferences] = useState<Map<string, SupplierPreference>>(preferences);
+  const [draftSuppliers, setDraftSuppliers] = useState<Map<string, SupplierEntry>>(suppliersMap);
 
   // Initialize drafts from committed state when dialog opens
   useEffect(() => {
     if (open) {
       setDraftConfig({ ...config });
-      setDraftPreferences(new Map(preferences));
+      setDraftSuppliers(new Map(suppliersMap));
     }
-    // Only react to `open` changes — not config/preferences updates mid-session
+    // Only react to `open` changes — not config/suppliers updates mid-session
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -66,33 +66,41 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, p
   }, []);
 
   const handleToggleDraftSupplier = useCallback((id: string, name: string) => {
-    setDraftPreferences((prev) => {
+    setDraftSuppliers((prev) => {
       const next = new Map(prev);
       const existing = next.get(id);
+      const newStatus: SupplierStatus = existing?.status === 'included' ? 'excluded' : 'included';
       next.set(id, {
         id,
         name,
-        excluded: !(existing?.excluded ?? false),
+        minPrice: existing?.minPrice ?? null,
+        status: newStatus,
       });
       return next;
     });
   }, []);
 
   const handleExcludeAllDraft = useCallback((supplierList: Array<{ id: string; name: string }>) => {
-    setDraftPreferences((prev) => {
+    setDraftSuppliers((prev) => {
       const next = new Map(prev);
       for (const s of supplierList) {
-        next.set(s.id, { id: s.id, name: s.name, excluded: true });
+        const existing = next.get(s.id);
+        next.set(s.id, {
+          id: s.id,
+          name: s.name,
+          minPrice: existing?.minPrice ?? null,
+          status: 'excluded',
+        });
       }
       return next;
     });
   }, []);
 
   const handleIncludeAllDraft = useCallback(() => {
-    setDraftPreferences((prev) => {
+    setDraftSuppliers((prev) => {
       const next = new Map(prev);
-      for (const [, pref] of next) {
-        next.set(pref.id, { ...pref, excluded: false });
+      for (const [id, entry] of next) {
+        next.set(id, { ...entry, status: 'included' });
       }
       return next;
     });
@@ -102,18 +110,18 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, p
 
   /** Commit draft state to parent and trigger re-fetch. */
   const handleApply = useCallback(async () => {
-    onCommit(draftConfig, draftPreferences);
+    onCommit(draftConfig, draftSuppliers);
 
     if (!draftConfig.apiFilter) {
-      await FilterEngine.apply(draftPreferences);
+      await FilterEngine.apply();
     } else {
-      // Stealth mode: install interceptor with new preferences before re-fetch
+      // Stealth mode: ensure interceptor is installed before re-fetch
       // so the sort toggle API call is intercepted with updated data
-      ApiInterceptor.install(draftPreferences);
+      ApiInterceptor.install();
     }
 
     await UIBootController.triggerRefetch();
-  }, [draftConfig, draftPreferences, onCommit]);
+  }, [draftConfig, draftSuppliers, onCommit]);
 
   /** Commit + close (re-fetch runs in background). */
   const handleApplyAndClose = useCallback(() => {
@@ -122,7 +130,7 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, p
   }, [handleApply, onClose]);
 
   // Excluded count from DRAFT (reflects pending changes in header badge)
-  const excludedCount = Array.from(draftPreferences.values()).filter((p) => p.excluded).length;
+  const excludedCount = Array.from(draftSuppliers.values()).filter((s) => s.status === 'excluded').length;
 
   return (
     <Dialog
@@ -165,7 +173,7 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, p
             <TabsContent value="suppliers" className="h-full mt-0">
               <SuppliersTab
                 suppliers={suppliers}
-                preferences={draftPreferences}
+                suppliersMap={draftSuppliers}
                 loading={loadingSuppliers}
                 onToggle={handleToggleDraftSupplier}
                 onExcludeAll={handleExcludeAllDraft}
@@ -179,7 +187,7 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, p
             </TabsContent>
 
             <TabsContent value="stats" className="mt-0">
-              <StatsTab suppliers={suppliers} preferences={draftPreferences} totalResults={totalResults} />
+              <StatsTab suppliers={suppliers} suppliersMap={draftSuppliers} totalResults={totalResults} />
             </TabsContent>
           </div>
         </Tabs>
@@ -187,7 +195,7 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, p
         {/* Footer */}
         <Separator />
         <div className="flex items-center justify-between px-6 py-3 shrink-0">
-          <span className="text-[10px] text-muted-foreground font-mono">{/* •  */}Tampermonkey Dashboard</span>
+          <span className="text-[10px] text-muted-foreground font-mono">Tampermonkey Dashboard</span>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleApply} className="text-xs h-8">
               Apply

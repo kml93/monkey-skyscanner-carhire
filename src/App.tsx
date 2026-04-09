@@ -19,8 +19,8 @@ import { UIBootController } from '@/core/UIBootController';
 import { Dashboard } from '@/features/dashboard/Dashboard';
 import { FloatingIndicator } from '@/features/floating-indicator/FloatingIndicator';
 import { FloatingMenu } from '@/features/floating-indicator/FloatingMenu';
-import { type AutoConfig, type SupplierPreference } from '@/core/types';
-import { useAutoConfig, useExcludedSuppliers, useTheme } from '@/hooks/useStorage';
+import { type AutoConfig, type SupplierEntry } from '@/core/types';
+import { useAutoConfig, useSuppliers, useTheme } from '@/hooks/useStorage';
 import { useSkyscannerState } from '@/hooks/useSkyscannerState';
 
 const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
@@ -32,7 +32,7 @@ const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
   // ── Hooks ────────────────────────────────────────────────────────────
   const { theme, toggleTheme } = useTheme();
   const { config, commitConfig } = useAutoConfig();
-  const { preferences, commitPreferences, excludedCount } = useExcludedSuppliers();
+  const { suppliers: suppliersMap, commitSuppliers, excludedCount } = useSuppliers();
   const { suppliers, totalResults, loading: loadingSuppliers, refresh: refreshSuppliers } = useSkyscannerState();
 
   // ── Boot Sequence ────────────────────────────────────────────────────
@@ -48,8 +48,8 @@ const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
   // request filtering toggled by config.apiFilter
   useEffect(() => {
     ApiInterceptor.setFilterEnabled(config.apiFilter);
-    ApiInterceptor.install(preferences);
-  }, [config.apiFilter, preferences]);
+    ApiInterceptor.install();
+  }, [config.apiFilter]);
 
   useEffect(() => {
     // Initialize supplier registry from persisted storage
@@ -64,7 +64,7 @@ const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
     DomObserver.start();
     const unsub = DomObserver.onNavigate(() => {
       // Always ensure interceptor is installed for response capture
-      ApiInterceptor.install(preferences);
+      ApiInterceptor.install();
 
       UIBootController.reset();
       UIBootController.boot(config, () => {
@@ -103,11 +103,11 @@ const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
   }, []);
 
   const handleCommit = useCallback(
-    (newConfig: AutoConfig, newPreferences: Map<string, SupplierPreference>) => {
+    (newConfig: AutoConfig, newSuppliers: Map<string, SupplierEntry>) => {
       commitConfig(newConfig);
-      commitPreferences(newPreferences);
+      commitSuppliers(newSuppliers);
     },
-    [commitConfig, commitPreferences],
+    [commitConfig, commitSuppliers],
   );
 
   // ── Render ───────────────────────────────────────────────────────────
@@ -127,7 +127,7 @@ const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
         defaultTab={dashboardTab}
         onTabChange={setDashboardTab}
         suppliers={suppliers}
-        preferences={preferences}
+        suppliersMap={suppliersMap}
         loadingSuppliers={loadingSuppliers}
         onRefreshSuppliers={refreshSuppliers}
         config={config}
