@@ -83,7 +83,7 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, s
   const handleExcludeAllDraft = useCallback((supplierList: Array<{ id: string; name: string }>) => {
     setDraftSuppliers((prev) => {
       const next = new Map(prev);
-      for (const s of supplierList) {
+      supplierList.forEach((s) => {
         const existing = next.get(s.id);
         next.set(s.id, {
           id: s.id,
@@ -91,7 +91,7 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, s
           minPrice: existing?.minPrice ?? null,
           status: 'excluded',
         });
-      }
+      });
       return next;
     });
   }, []);
@@ -99,9 +99,9 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, s
   const handleIncludeAllDraft = useCallback(() => {
     setDraftSuppliers((prev) => {
       const next = new Map(prev);
-      for (const [id, entry] of next) {
+      next.forEach((entry, id) => {
         next.set(id, { ...entry, status: 'included' });
-      }
+      });
       return next;
     });
   }, []);

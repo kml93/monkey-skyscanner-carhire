@@ -32,11 +32,11 @@ export class ExclusionStrategy implements FilterStrategy {
   computeUncheckedIds(_allSupplierIds: string[], entries: Map<string, SupplierEntry>): string[] {
     const unchecked: string[] = [];
 
-    for (const [id, entry] of entries) {
+    entries.forEach((entry, id) => {
       if (entry.status === 'excluded') {
         unchecked.push(id);
       }
-    }
+    });
 
     return unchecked;
   }
@@ -136,17 +136,17 @@ export class FilterEngine {
     const ids: string[] = [];
     const seen = new Set<string>();
 
-    for (const cb of checkboxes) {
+    checkboxes.forEach((cb) => {
       const testId = cb.getAttribute('data-testid') ?? '';
       const match = testId.match(/^supplier-(\d+)-checkbox$/);
-      if (!match) continue;
+      if (!match) return;
 
       const id = match[1];
-      if (seen.has(id)) continue;
+      if (seen.has(id)) return;
       seen.add(id);
 
       ids.push(id);
-    }
+    });
 
     return ids;
   }

@@ -180,18 +180,18 @@ export class UIBootController {
 
     let foldedCount = 0;
 
-    for (const btn of accordionButtons) {
+    accordionButtons.forEach((btn) => {
       const label = btn.textContent?.trim() ?? '';
       const isExpanded = btn.getAttribute('aria-expanded') === 'true';
 
       // Skip if already collapsed
-      if (!isExpanded) continue;
+      if (!isExpanded) return;
       // Skip footer-level sections
-      if ((footerLabels as readonly string[]).includes(label)) continue;
+      if ((footerLabels as readonly string[]).includes(label)) return;
 
       btn.click();
       foldedCount++;
-    }
+    });
 
     if (foldedCount > 0) {
       Logger.info(`Folded ${foldedCount} accordion section(s).`);

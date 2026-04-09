@@ -66,9 +66,9 @@ export class SupplierRegistry {
       ((supplierFilter as Record<string, Record<string, unknown>>).string_value_filter as Record<string, unknown>)?.options;
     if (!Array.isArray(options)) return;
 
-    let updated = false;
+    const updateState = { updated: false };
 
-    for (const opt of options as Array<Record<string, unknown>>) {
+    (options as Array<Record<string, unknown>>).forEach((opt) => {
       const id = String(opt.id);
       const name = String(opt.display_text ?? '');
       const minPrice = (opt.price_range as Record<string, unknown> | undefined)?.min != null
@@ -81,14 +81,14 @@ export class SupplierRegistry {
 
       if (!existing || existing.name !== name || existing.minPrice !== minPrice) {
         this.suppliers.set(id, { id, name, minPrice, status });
-        updated = true;
+        updateState.updated = true;
       }
-    }
+    });
 
-    if (updated) {
+    if (updateState.updated) {
       StorageService.setSuppliers(this.suppliers);
       Logger.info(`SupplierRegistry: updated → ${this.suppliers.size} supplier(s).`);
-      for (const listener of this.listeners) listener();
+      this.listeners.forEach((listener) => listener());
     }
   }
 
@@ -107,31 +107,31 @@ export class SupplierRegistry {
   /** IDs of suppliers with status 'included'. */
   static getIncludedIds(): string[] {
     const included: string[] = [];
-    for (const [id, entry] of this.suppliers) {
+    this.suppliers.forEach((entry, id) => {
       if (entry.status === 'included') {
         included.push(id);
       }
-    }
+    });
     return included;
   }
 
   /** IDs of suppliers with status 'excluded'. */
   static getExcludedIds(): string[] {
     const excluded: string[] = [];
-    for (const [id, entry] of this.suppliers) {
+    this.suppliers.forEach((entry, id) => {
       if (entry.status === 'excluded') {
         excluded.push(id);
       }
-    }
+    });
     return excluded;
   }
 
   /** Count of excluded suppliers. */
   static getExcludedCount(): number {
     let count = 0;
-    for (const entry of this.suppliers.values()) {
+    Array.from(this.suppliers.values()).forEach((entry) => {
       if (entry.status === 'excluded') count++;
-    }
+    });
     return count;
   }
 
@@ -156,41 +156,41 @@ export class SupplierRegistry {
     this.suppliers.set(id, { ...entry, status: newStatus });
     StorageService.setSuppliers(this.suppliers);
 
-    for (const listener of this.listeners) listener();
+    this.listeners.forEach((listener) => listener());
   }
 
   /** Sets status for multiple suppliers at once. */
   static setStatus(ids: string[], status: SupplierStatus): void {
-    let updated = false;
+    const updateState = { updated: false };
 
-    for (const id of ids) {
+    ids.forEach((id) => {
       const entry = this.suppliers.get(id);
       if (entry && entry.status !== status) {
         this.suppliers.set(id, { ...entry, status });
-        updated = true;
+        updateState.updated = true;
       }
-    }
+    });
 
-    if (updated) {
+    if (updateState.updated) {
       StorageService.setSuppliers(this.suppliers);
-      for (const listener of this.listeners) listener();
+      this.listeners.forEach((listener) => listener());
     }
   }
 
   /** Sets status for all suppliers. */
   static setAllStatus(status: SupplierStatus): void {
-    let updated = false;
+    const updateState = { updated: false };
 
-    for (const [id, entry] of this.suppliers) {
+    this.suppliers.forEach((entry, id) => {
       if (entry.status !== status) {
         this.suppliers.set(id, { ...entry, status });
-        updated = true;
+        updateState.updated = true;
       }
-    }
+    });
 
-    if (updated) {
+    if (updateState.updated) {
       StorageService.setSuppliers(this.suppliers);
-      for (const listener of this.listeners) listener();
+      this.listeners.forEach((listener) => listener());
     }
   }
 
@@ -199,7 +199,7 @@ export class SupplierRegistry {
     this.suppliers = new Map(updates);
     StorageService.setSuppliers(this.suppliers);
     Logger.info(`SupplierRegistry: committed ${this.suppliers.size} supplier(s).`);
-    for (const listener of this.listeners) listener();
+    this.listeners.forEach((listener) => listener());
   }
 
   // ── Reactivity ──────────────────────────────────────────────────────────

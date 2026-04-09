@@ -63,13 +63,13 @@ export class DomObserver {
   }
 
   private static notifyAll(): void {
-    for (const callback of this.callbacks) {
+    this.callbacks.forEach((callback) => {
       try {
         callback();
       } catch (error) {
         Logger.error('DomObserver callback error:', error);
       }
-    }
+    });
   }
 
   /**
