@@ -1,8 +1,28 @@
+import { registerRequestIdleCallbackPolyfill } from './core/polyfills';
 import { StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import App from './App';
+import { ShadowPortalProvider } from './contexts/ShadowPortalProvider';
+import { ApiInterceptor } from './core/ApiInterceptor';
+import { StorageService } from './core/StorageService';
+import { UIBootController } from './core/UIBootController';
 import './fonts.css';
+import './index.css';
 import styleString from './index.css?inline';
+
+// Register polyfills before any feature code runs
+registerRequestIdleCallbackPolyfill();
+
+/**
+ * 0. Network interception — before the DOM and React, so that with
+ * `@run-at document-start` the page's first carhire-quotes request is already filtered.
+ */
+ApiInterceptor.setFilterEnabled(StorageService.getAutoConfig().apiFilter);
+ApiInterceptor.install();
+// Real page load only: on HMR re-execution the quotes already on screen were intercepted.
+if (!import.meta.hot?.data.booted) {
+  ApiInterceptor.watchMissedRequests(() => UIBootController.triggerRefetchWhenReady());
+}
 
 /**
  * 1. Definition of the Custom Element
@@ -17,11 +37,6 @@ class SkyScannerController extends HTMLElement {
     super();
     // We attach the Shadow DOM directly in the constructor
     this.shadowRoot = this.attachShadow({ mode: 'open' });
-
-    // Inject styles immediately
-    const styleSheet = new CSSStyleSheet();
-    styleSheet.replaceSync(styleString);
-    this.shadowRoot.adoptedStyleSheets = [styleSheet];
   }
 }
 
@@ -46,18 +61,35 @@ class SkyScannerApplication {
 
     this.hostInstance = document.createElement(SkyScannerController.CONTROLLER_TAG) as SkyScannerController;
 
-    // 2. Create Shadow Root
+    // 2. Inject styles dynamically (Ensures HMR readiness)
+    // const styleTag = document.createElement('style');
+    // styleTag.textContent = styleString;
+    // this.hostInstance.shadowRoot.appendChild(styleTag);
+    const styleSheet = new CSSStyleSheet();
+    styleSheet.replaceSync(styleString);
+    this.hostInstance.shadowRoot.adoptedStyleSheets = [styleSheet];
+
+    // 3. Create Shadow Root
     document.documentElement.appendChild(this.hostInstance);
 
-    // 3. React App Container
+    // 4. React App Container
     const appContainer = document.createElement('div');
+    appContainer.id = 'app-skyscanner-car_rental';
     this.hostInstance.shadowRoot.appendChild(appContainer);
 
-    // 4. React Rendering (Create Root)
+    // 5. Portals Container (Base UI portals render here instead of document.body)
+    //    Kept separate from appContainer so portals never clip inside the React tree
+    const portalsContainer = document.createElement('div');
+    portalsContainer.setAttribute('data-slot', 'portals');
+    this.hostInstance.shadowRoot.appendChild(portalsContainer);
+
+    // 5. React Rendering (Create Root)
     this.root = createRoot(appContainer);
     this.root.render(
       <StrictMode>
-        <App />
+        <ShadowPortalProvider container={portalsContainer}>
+          <App shadowHost={this.hostInstance} />
+        </ShadowPortalProvider>
       </StrictMode>,
     );
   }
@@ -92,8 +124,11 @@ if (document.readyState === 'loading') {
  */
 if (import.meta.hot) {
   // IMPORTANT: Clear everything before letting Vite re-execute this script
-  import.meta.hot.dispose(() => {
+  import.meta.hot.dispose((data) => {
     SkyScannerApplication.cleanUp();
+    // Restore the native fetch, otherwise the new module version patches on top of the old one
+    ApiInterceptor.uninstall();
+    data.booted = true;
   });
 
   // Signal to Vite that we accept hot changes
