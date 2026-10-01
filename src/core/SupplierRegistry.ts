@@ -7,7 +7,7 @@
  * - status (user's inclusion/exclusion preference)
  *
  * Data flow:
- *   API Response → captureFromResponse() → in-memory Map → GM_setValue()
+ *   API Response → captureFromResponse() → GM_setValue() (single source, no in-memory copy)
  *   ApiInterceptor → getIncludedIds() → builds filters=suppliers:...
  *   Dashboard → getAll() → displays and edits suppliers
  *   FilterEngine → getIncludedIds() → applies DOM exclusions
@@ -49,20 +49,15 @@ interface SkyscannerApiResponse {
 // ---------------------------------------------------------------------------
 
 export class SupplierRegistry {
-  private static suppliers: Map<string, SupplierEntry> = new Map();
-  private static loaded = false;
   private static listeners = new Set<() => void>();
 
-  // ── Lifecycle ───────────────────────────────────────────────────────────
-
   /**
-   * Loads persisted suppliers from Tampermonkey storage.
-   * Must be called once at boot, before ApiInterceptor.install().
+   * Single source of truth: Tampermonkey storage, read on every access.
+   * No in-memory copy, so changes synced from another machine are seen immediately.
+   * Returns a fresh Map: mutate it, then save it with StorageService.setSuppliers().
    */
-  static initialize(): void {
-    this.suppliers = StorageService.getSuppliers();
-    this.loaded = true;
-    Logger.info(`SupplierRegistry: loaded ${this.suppliers.size} supplier(s) from storage.`);
+  private static get suppliers(): Map<string, SupplierEntry> {
+    return StorageService.getSuppliers();
   }
 
   // ── Data Capture ────────────────────────────────────────────────────────
@@ -90,6 +85,7 @@ export class SupplierRegistry {
     const options = supplierFilter?.string_value_filter?.options;
     if (!Array.isArray(options)) return;
 
+    const suppliers = this.suppliers;
     const updateState = { updated: false };
 
     options.forEach((opt) => {
@@ -99,19 +95,19 @@ export class SupplierRegistry {
         ? Number(opt.price_range.min)
         : null;
 
-      const existing = this.suppliers.get(id);
+      const existing = suppliers.get(id);
       // Preserve status when updating
       const status = existing?.status ?? 'included';
 
       if (!existing || existing.name !== name || existing.minPrice !== minPrice) {
-        this.suppliers.set(id, { id, name, minPrice, status });
+        suppliers.set(id, { id, name, minPrice, status });
         updateState.updated = true;
       }
     });
 
     if (updateState.updated) {
-      StorageService.setSuppliers(this.suppliers);
-      Logger.info(`SupplierRegistry: updated → ${this.suppliers.size} supplier(s).`);
+      StorageService.setSuppliers(suppliers);
+      Logger.info(`SupplierRegistry: updated → ${suppliers.size} supplier(s).`);
       this.listeners.forEach((listener) => listener());
     }
   }
@@ -164,65 +160,62 @@ export class SupplierRegistry {
     return this.suppliers.size;
   }
 
-  /** Whether the registry has been initialized. */
-  static isReady(): boolean {
-    return this.loaded;
-  }
-
   // ── Mutations ───────────────────────────────────────────────────────────
 
   /** Toggles a single supplier's status. */
   static toggleStatus(id: string): void {
-    const entry = this.suppliers.get(id);
+    const suppliers = this.suppliers;
+    const entry = suppliers.get(id);
     if (!entry) return;
 
     const newStatus: SupplierStatus = entry.status === 'included' ? 'excluded' : 'included';
-    this.suppliers.set(id, { ...entry, status: newStatus });
-    StorageService.setSuppliers(this.suppliers);
+    suppliers.set(id, { ...entry, status: newStatus });
+    StorageService.setSuppliers(suppliers);
 
     this.listeners.forEach((listener) => listener());
   }
 
   /** Sets status for multiple suppliers at once. */
   static setStatus(ids: string[], status: SupplierStatus): void {
+    const suppliers = this.suppliers;
     const updateState = { updated: false };
 
     ids.forEach((id) => {
-      const entry = this.suppliers.get(id);
+      const entry = suppliers.get(id);
       if (entry && entry.status !== status) {
-        this.suppliers.set(id, { ...entry, status });
+        suppliers.set(id, { ...entry, status });
         updateState.updated = true;
       }
     });
 
     if (updateState.updated) {
-      StorageService.setSuppliers(this.suppliers);
+      StorageService.setSuppliers(suppliers);
       this.listeners.forEach((listener) => listener());
     }
   }
 
   /** Sets status for all suppliers. */
   static setAllStatus(status: SupplierStatus): void {
+    const suppliers = this.suppliers;
     const updateState = { updated: false };
 
-    this.suppliers.forEach((entry, id) => {
+    suppliers.forEach((entry, id) => {
       if (entry.status !== status) {
-        this.suppliers.set(id, { ...entry, status });
+        suppliers.set(id, { ...entry, status });
         updateState.updated = true;
       }
     });
 
     if (updateState.updated) {
-      StorageService.setSuppliers(this.suppliers);
+      StorageService.setSuppliers(suppliers);
       this.listeners.forEach((listener) => listener());
     }
   }
 
   /** Atomic commit from Dashboard (batch update). */
   static commit(updates: Map<string, SupplierEntry>): void {
-    this.suppliers = new Map(updates);
-    StorageService.setSuppliers(this.suppliers);
-    Logger.info(`SupplierRegistry: committed ${this.suppliers.size} supplier(s).`);
+    StorageService.setSuppliers(updates);
+    Logger.info(`SupplierRegistry: committed ${updates.size} supplier(s).`);
     this.listeners.forEach((listener) => listener());
   }
 

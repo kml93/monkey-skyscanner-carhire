@@ -1,5 +1,5 @@
 /**
- * API Interceptor — patches window.fetch for supplier data capture and filtering.
+ * API Interceptor — patches the page's fetch (unsafeWindow) for supplier data capture and filtering.
  *
  * Two independent concerns:
  *   1. RESPONSE CAPTURE (always active when installed):
@@ -7,12 +7,14 @@
  *      This populates the Dashboard with all available suppliers without DOM dependency.
  *
  *   2. REQUEST FILTERING (only when filterEnabled = true):
- *      Builds `filters=suppliers:...` from SupplierRegistry (included entries only),
- *      replacing the existing param. Controlled by config.apiFilter.
+ *      Sets the `suppliers:...` segment of `filters` from SupplierRegistry (included entries only),
+ *      keeping Skyscanner's own segments (price, transmissions, ...). Controlled by config.apiFilter.
  *
  * Single Responsibility: only handles fetch interception and URL transformation.
  */
 
+import { unsafeWindow } from '$';
+import { API_CONSTANTS } from './constants';
 import { Logger } from './Logger';
 import { SupplierRegistry } from './SupplierRegistry';
 
@@ -42,16 +44,6 @@ interface SkyscannerApiResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-/** URL substring that identifies carhire-quotes API requests. */
-const QUOTES_PATH = '/g/carhire-quotes/';
-
-/** Prefix for the supplier filter query parameter. */
-const SUPPLIERS_FILTER_PREFIX = 'suppliers:';
-
-// ---------------------------------------------------------------------------
 // API Interceptor
 // ---------------------------------------------------------------------------
 
@@ -61,6 +53,12 @@ export class ApiInterceptor {
 
   /** Whether request filtering is active (config.apiFilter). */
   private static filterEnabled = false;
+
+  /** Whether a carhire-quotes request has gone through the interceptor since install. */
+  private static quotesIntercepted = false;
+
+  /** Startup watcher for requests that bypassed the interceptor (see watchMissedRequests). */
+  private static missedRequestObserver: PerformanceObserver | null = null;
 
   // ── Lifecycle ───────────────────────────────────────────────────────────
 
@@ -76,24 +74,26 @@ export class ApiInterceptor {
       return;
     }
 
-    this.originalFetch = window.fetch;
-    const self = this;
+    this.originalFetch = unsafeWindow.fetch;
 
-    window.fetch = async function (
+    unsafeWindow.fetch = async function (
       ...args: Parameters<typeof fetch>
     ): Promise<Response> {
-      const resolved = self.resolveInput(args[0], args[1]);
+      const resolved = ApiInterceptor.resolveInput(args[0]);
+      if (resolved.url.includes(API_CONSTANTS.QUOTES_PATH)) {
+        ApiInterceptor.quotesIntercepted = true;
+      }
 
       // Phase 1: Transform REQUEST — only when filtering is enabled
-      if (self.filterEnabled && resolved.url.includes(QUOTES_PATH)) {
-        args = self.transformRequest(args, resolved);
+      if (ApiInterceptor.filterEnabled && resolved.url.includes(API_CONSTANTS.QUOTES_PATH)) {
+        args = ApiInterceptor.transformRequest(args, resolved);
       }
 
       // Execute original fetch
-      const response = await self.originalFetch!.apply(this, args);
+      const response = await ApiInterceptor.originalFetch!.apply(this, args);
 
       // Phase 2: Capture RESPONSE — always active (awaited, not fire-and-forget)
-      if (!resolved.url.includes(QUOTES_PATH)) {
+      if (!resolved.url.includes(API_CONSTANTS.QUOTES_PATH)) {
         return response;
       }
 
@@ -125,13 +125,48 @@ export class ApiInterceptor {
    * Restores the original fetch — cleanup for hot-reload or feature toggle.
    */
   static uninstall(): void {
+    this.missedRequestObserver?.disconnect();
+    this.missedRequestObserver = null;
+
     if (!this.installed || !this.originalFetch) return;
 
-    window.fetch = this.originalFetch;
+    unsafeWindow.fetch = this.originalFetch;
     this.originalFetch = null;
     this.installed = false;
+    this.quotesIntercepted = false;
 
     Logger.info('ApiInterceptor: fetch restored.');
+  }
+
+  /**
+   * Startup catch-up: calls `onMissed` once if a carhire-quotes request reached the
+   * network before any quotes request went through the interceptor — the results
+   * on screen are then unfiltered. Happens in dev (Vite serves the script after the
+   * page's first request) or whenever the page beats the userscript.
+   *
+   * Event-driven: the browser reports finished requests (PerformanceObserver,
+   * `buffered` replays those finished before the call). No timers.
+   * Stops at the first verdict: missed request, or a quotes request intercepted.
+   */
+  static watchMissedRequests(onMissed: () => void): void {
+    this.missedRequestObserver?.disconnect();
+
+    const observer = new PerformanceObserver((list) => {
+      if (this.quotesIntercepted) {
+        observer.disconnect();
+        return;
+      }
+      if (!list.getEntries().some((entry) => entry.name.includes(API_CONSTANTS.QUOTES_PATH))) return;
+
+      observer.disconnect();
+      if (!this.filterEnabled) return;
+
+      Logger.info('ApiInterceptor: a carhire-quotes request bypassed the interceptor — re-fetching.');
+      onMissed();
+    });
+
+    observer.observe({ type: 'resource', buffered: true });
+    this.missedRequestObserver = observer;
   }
 
   /** Enables or disables request filtering (controlled by config.apiFilter). */
@@ -148,7 +183,8 @@ export class ApiInterceptor {
   // ── Request Transformation ──────────────────────────────────────────────
 
   /**
-   * Builds `filters=suppliers:...` from the SupplierRegistry.
+   * Sets the `suppliers:...` segment of `filters` from the SupplierRegistry,
+   * keeping the other segments built by Skyscanner (`price:…|transmissions:…`).
    *
    * Strategy:
    *   - Registry empty  → pass through (cold start, will populate from response)
@@ -166,11 +202,11 @@ export class ApiInterceptor {
 
     try {
       const url = new URL(resolved.url);
-      url.searchParams.set('filters', `${SUPPLIERS_FILTER_PREFIX}${includedIds.join(',')}`);
-      url.searchParams.set('sort_type', 'CHEAPEST_SORT');
+      url.searchParams.set('filters', this.buildFilters(url.searchParams.get('filters'), includedIds));
+      url.searchParams.set('sort_type', API_CONSTANTS.SORT_TYPE_CHEAPEST);
 
       Logger.info(
-        `ApiInterceptor: passing ${includedIds.length} included supplier(s), sort=CHEAPEST_SORT.`,
+        `ApiInterceptor: passing ${includedIds.length} included supplier(s), sort=${API_CONSTANTS.SORT_TYPE_CHEAPEST}.`,
       );
 
       // Rebuild args with modified URL
@@ -187,13 +223,25 @@ export class ApiInterceptor {
     }
   }
 
+  /**
+   * Replaces the `suppliers:` segment of a `filters` value with the included IDs,
+   * keeping every other segment built by Skyscanner (`price:…|transmissions:…`).
+   */
+  private static buildFilters(pageFilters: string | null, includedIds: string[]): string {
+    const suppliersSegment = `${API_CONSTANTS.SUPPLIERS_FILTER_PREFIX}${includedIds.join(',')}`;
+    if (!pageFilters) return suppliersSegment;
+
+    const pageSegments = pageFilters
+      .split(API_CONSTANTS.FILTERS_SEPARATOR)
+      .filter((segment) => segment !== '' && !segment.startsWith(API_CONSTANTS.SUPPLIERS_FILTER_PREFIX));
+
+    return [...pageSegments, suppliersSegment].join(API_CONSTANTS.FILTERS_SEPARATOR);
+  }
+
   // ── Utility ─────────────────────────────────────────────────────────────
 
   /** Resolves URL and type info from fetch arguments. */
-  private static resolveInput(
-    input: RequestInfo | URL,
-    _init?: RequestInit,
-  ): { url: string; isRequest: boolean } {
+  private static resolveInput(input: RequestInfo | URL): { url: string; isRequest: boolean } {
     if (typeof input === 'string') return { url: input, isRequest: false };
     if (input instanceof URL) return { url: input.href, isRequest: false };
     if (input instanceof Request) return { url: input.url, isRequest: true };

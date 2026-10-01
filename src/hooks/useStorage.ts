@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { StorageService } from '@/core/StorageService';
+import { SupplierRegistry } from '@/core/SupplierRegistry';
 import { type AutoConfig, DEFAULT_AUTO_CONFIG, type SupplierEntry } from '@/core/types';
 
 // ---------------------------------------------------------------------------
@@ -31,7 +32,8 @@ export function useSuppliers() {
   const commitSuppliers = useCallback(
     (newSuppliers: Map<string, SupplierEntry>) => {
       setSuppliers(newSuppliers);
-      StorageService.setSuppliers(newSuppliers);
+      // Registry saves to storage (read by the API interceptor) and notifies its listeners
+      SupplierRegistry.commit(newSuppliers);
     },
     [],
   );

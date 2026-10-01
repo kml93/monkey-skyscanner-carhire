@@ -111,9 +111,8 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, s
   const handleApply = useCallback(async () => {
     onCommit(draftConfig, draftSuppliers);
 
-    if (draftConfig.apiFilter) {
-      ApiInterceptor.install();
-    }
+    // Synchronous: the re-fetch below must already see the new flag (App's effect runs later)
+    ApiInterceptor.setFilterEnabled(draftConfig.apiFilter);
 
     await UIBootController.triggerRefetch();
   }, [draftConfig, draftSuppliers, onCommit]);

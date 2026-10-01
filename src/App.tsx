@@ -13,7 +13,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ApiInterceptor } from '@/core/ApiInterceptor';
 import { ScrollInterceptor } from '@/core/ScrollInterceptor';
-import { SupplierRegistry } from '@/core/SupplierRegistry';
 import { Dashboard } from '@/features/dashboard/Dashboard';
 import { FloatingIndicator } from '@/features/floating-indicator/FloatingIndicator';
 import { FloatingMenu } from '@/features/floating-indicator/FloatingMenu';
@@ -42,18 +41,10 @@ const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
     void (config.scrollLock ? ScrollInterceptor.enable() : ScrollInterceptor.disable());
   }, [config.scrollLock]);
 
-  // Sync API interceptor: always installed for response capture,
-  // request filtering toggled by config.apiFilter
+  // Interceptor is installed at boot (main.tsx); only the filtering flag follows config.apiFilter
   useEffect(() => {
     ApiInterceptor.setFilterEnabled(config.apiFilter);
-    ApiInterceptor.install();
   }, [config.apiFilter]);
-
-  useEffect(() => {
-    // Initialize supplier registry from persisted storage
-    SupplierRegistry.initialize();
-
-  }, []);
 
   // ── Handlers ─────────────────────────────────────────────────────────
   const handleIndicatorClick = useCallback(() => {

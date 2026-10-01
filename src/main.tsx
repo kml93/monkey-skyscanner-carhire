@@ -3,12 +3,26 @@ import { StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import App from './App';
 import { ShadowPortalProvider } from './contexts/ShadowPortalProvider';
+import { ApiInterceptor } from './core/ApiInterceptor';
+import { StorageService } from './core/StorageService';
+import { UIBootController } from './core/UIBootController';
 import './fonts.css';
 import './index.css';
 import styleString from './index.css?inline';
 
 // Register polyfills before any feature code runs
 registerRequestIdleCallbackPolyfill();
+
+/**
+ * 0. Network interception — before the DOM and React, so that with
+ * `@run-at document-start` the page's first carhire-quotes request is already filtered.
+ */
+ApiInterceptor.setFilterEnabled(StorageService.getAutoConfig().apiFilter);
+ApiInterceptor.install();
+// Real page load only: on HMR re-execution the quotes already on screen were intercepted.
+if (!import.meta.hot?.data.booted) {
+  ApiInterceptor.watchMissedRequests(() => UIBootController.triggerRefetchWhenReady());
+}
 
 /**
  * 1. Definition of the Custom Element
@@ -110,8 +124,11 @@ if (document.readyState === 'loading') {
  */
 if (import.meta.hot) {
   // IMPORTANT: Clear everything before letting Vite re-execute this script
-  import.meta.hot.dispose(() => {
+  import.meta.hot.dispose((data) => {
     SkyScannerApplication.cleanUp();
+    // Restore the native fetch, otherwise the new module version patches on top of the old one
+    ApiInterceptor.uninstall();
+    data.booted = true;
   });
 
   // Signal to Vite that we accept hot changes

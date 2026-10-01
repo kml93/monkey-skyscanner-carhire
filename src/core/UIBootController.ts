@@ -47,4 +47,23 @@ export class UIBootController {
     Logger.info(`Toggling sort dropdown: ${select.value} -> ${nextValue}`);
     this.setSortValue(select, nextValue);
   }
+
+  /**
+   * Triggers the re-fetch as soon as the sort dropdown exists.
+   * At startup Skyscanner renders the dropdown only after its first response,
+   * so wait for it with a MutationObserver (event-driven, no timers).
+   */
+  static triggerRefetchWhenReady(): void {
+    if (this.getSortSelect()) {
+      this.triggerRefetch();
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      if (!this.getSortSelect()) return;
+      observer.disconnect();
+      this.triggerRefetch();
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
 }
