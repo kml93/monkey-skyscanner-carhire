@@ -47,10 +47,6 @@ export interface SupplierEntry {
 
 /** Toggleable auto-configuration options persisted across sessions. */
 export interface AutoConfig {
-  /** Force sort to "Cheapest" on page load. */
-  sortCheapest: boolean;
-  /** Collapse all accordion sections except "Providers" on page load. */
-  foldAccordions: boolean;
   /** Intercept programmatic scroll globally. */
   scrollLock: boolean;
   /**
@@ -66,8 +62,6 @@ export interface AutoConfig {
 
 /** Default auto-config values — everything enabled for best UX. */
 export const DEFAULT_AUTO_CONFIG: AutoConfig = {
-  sortCheapest: false,
-  foldAccordions: false,
   scrollLock: false,
   apiFilter: false,
 };
@@ -88,33 +82,3 @@ export const STORAGE_KEYS = {
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
 
-// ---------------------------------------------------------------------------
-// Filter Strategy (SoC — prepared for future inverse mode)
-// ---------------------------------------------------------------------------
-
-/**
- * Strategy interface for supplier filtering.
- *
- * Current implementation: ExclusionStrategy (all included, exclude specific).
- * Future implementation: InclusionStrategy (all excluded, include specific).
- *
- * Follows the Strategy Pattern to allow swapping filter behavior
- * without modifying the FilterEngine.
- */
-export interface FilterStrategy {
-  /** Human-readable name for UI display. */
-  readonly label: string;
-
-  /**
-   * Given the full list of supplier IDs and user entries,
-   * returns the IDs that should be UNCHECKED in the DOM.
-   */
-  computeUncheckedIds(allSupplierIds: string[], entries: Map<string, SupplierEntry>): string[];
-}
-
-// ---------------------------------------------------------------------------
-// Events
-// ---------------------------------------------------------------------------
-
-/** Events emitted by the core engine for React hooks to subscribe to. */
-export type DashboardEvent = { type: 'suppliers-updated'; suppliers: Supplier[] } | { type: 'boot-complete' } | { type: 'filters-applied' } | { type: 'config-changed'; config: AutoConfig };

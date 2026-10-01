@@ -2,7 +2,7 @@ import { registerRequestIdleCallbackPolyfill } from './core/polyfills';
 import { StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import App from './App';
-import { ShadowPortalProvider } from './contexts/ShadowPortalContext';
+import { ShadowPortalProvider } from './contexts/ShadowPortalProvider';
 import './fonts.css';
 import './index.css';
 import styleString from './index.css?inline';

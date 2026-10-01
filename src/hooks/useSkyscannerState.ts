@@ -12,11 +12,21 @@ import { SELECTORS } from '@/core/selectors';
 import { TIMING } from '@/core/constants';
 import type { Supplier } from '@/core/types';
 
-export function useSkyscannerState() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [totalResults, setTotalResults] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
+function getSuppliersFromRegistry(): Supplier[] {
+  const registryData = SupplierRegistry.getAll();
+  return Array.from(registryData.values()).map((entry) => ({
+    id: entry.id,
+    name: entry.name,
+    priceLabel: entry.minPrice !== null ? `from ${entry.minPrice} €` : '',
+    price: entry.minPrice ?? 0,
+    checked: true,
+  }));
+}
 
+export function useSkyscannerState() {
+  const [suppliers, setSuppliers] = useState<Supplier[]>(getSuppliersFromRegistry);
+  const [totalResults, setTotalResults] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
   /**
    * Refreshes supplier data from SupplierRegistry.
    *
@@ -27,17 +37,7 @@ export function useSkyscannerState() {
     setLoading(true);
 
     requestIdleCallback(() => {
-      // Registry data (always available, no DOM dependency)
-      const registryData = SupplierRegistry.getAll();
-
-      const mapped: Supplier[] = Array.from(registryData.values()).map((entry) => ({
-        id: entry.id,
-        name: entry.name,
-        priceLabel: entry.minPrice !== null ? `from ${entry.minPrice} €` : '',
-        price: entry.minPrice ?? 0,
-        checked: true,
-      }));
-      setSuppliers(mapped);
+      setSuppliers(getSuppliersFromRegistry());
 
       // Total results from banner (DOM-dependent, non-critical)
       const bannerText = document.querySelector(SELECTORS.banner.sortResults)?.textContent ?? '';
@@ -49,13 +49,6 @@ export function useSkyscannerState() {
       setLoading(false);
     }, { timeout: TIMING.IDLE_REFRESH_TIMEOUT });
   }, []);
-
-  // Initial refresh on mount
-  useEffect(() => {
-    // Delay to ensure UIBootController has completed
-    const timer = setTimeout(refresh, TIMING.INITIAL_REFRESH_DELAY);
-    return () => clearTimeout(timer);
-  }, [refresh]);
 
   // Auto-refresh when registry captures new data from API responses
   useEffect(() => {

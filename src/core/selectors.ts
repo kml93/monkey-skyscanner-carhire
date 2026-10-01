@@ -9,15 +9,6 @@
  */
 
 export const SELECTORS = {
-  // ── App Root ────────────────────────────────────────────────────────────
-  appRoot: {
-    /** Candidate selectors for the app root (tried in order) */
-    candidates: [
-      '[data-testid="side-container-filters-container"]',
-      '[data-testid="car-hire-results"]',
-      '#app-root',
-    ],
-  },
 
   // ── Sort Controls ──────────────────────────────────────────────────────
   sort: {
@@ -27,45 +18,6 @@ export const SELECTORS = {
     dropdownByTestId: '[data-testid="sort-by-type-select"]',
   },
 
-  // ── Sidebar Container ─────────────────────────────────────────────────
-  sidebar: {
-    /** Main sidebar wrapper holding all filter sections */
-    container: '[data-testid="side-container-filters-container"]',
-    /** Inner container grouping accordion filter sections */
-    filtersContainer: '[data-testid="accordion-filters-container"]',
-  },
-
-  // ── Accordion Sections ─────────────────────────────────────────────────
-  accordion: {
-    /** Toggle button for each filter section (generic, aria-based) */
-    toggleButton: 'button[aria-expanded]',
-    /** Wildcard class selector — survives hash suffix rotation */
-    toggleButtonWildcard: 'button[class*="accordion__toggle-button"]',
-  },
-
-  // ── Supplier / Prestataire Filter ──────────────────────────────────────
-  supplier: {
-    /** Checkbox input for a specific supplier by its numeric ID */
-    checkbox: (id: string) => `[data-testid="supplier-${id}-checkbox"]`,
-    /** Wrapper container for a specific supplier entry */
-    container: (id: string) => `[data-testid="supplier-${id}-checkbox-container"]`,
-    /** Display name element for a specific supplier */
-    name: (id: string) => `[data-testid="supplier-${id}-name"]`,
-    /** Price label element for a specific supplier */
-    price: (id: string) => `[data-testid="supplier-${id}-price"]`,
-    /** Wildcard selector matching any supplier checkbox input */
-    anyCheckbox: '[data-testid^="supplier-"][data-testid$="-checkbox"]:not([data-testid$="-checkbox-container"])',
-    /** Wildcard selector matching any supplier container */
-    anyContainer: '[data-testid^="supplier-"][data-testid$="-checkbox-container"]',
-    /** Checkbox input class (Backpack design system) */
-    checkboxInputWildcard: 'input[class*="bpk-checkbox__input"]',
-  },
-
-  // ── Action Buttons (Prestataire section) ───────────────────────────────
-  buttons: {
-    /** Provider name label in result cards */
-    providerName: '[data-testid="provider-name"]',
-  },
 
   // ── Sort Values ────────────────────────────────────────────────────────
   sortValues: {
@@ -75,25 +27,10 @@ export const SELECTORS = {
     recommended: 'RECOMMENDED_SORT',
   },
 
-  // ── Loaders ────────────────────────────────────────────────────────────
-  loaders: {
-    /** Top loading bar indicating search progress */
-    progressBar: '#results-loading-bar',
-    /** Overlay panel spinner "Recherche en cours" */
-    spinnerPanel: '[class*="ResultsView_ResultsView__infoPanel"]',
-    /** Internal spinner container within the panel */
-    spinnerContainer: '[class*="ResultsView_ResultsView__spinnerContainer"]',
-  },
-
   // ── Banner ──────────────────────────────────────────────────────────────
   banner: {
     /** Sort results banner showing total count */
     sortResults: '[data-testid="sort-by-banner"]',
   },
 
-  // ── Accordion Section Labels (Support both FR and EN) ──────────────────
-  accordionLabels: {
-    /** Footer accordion labels — not part of filters, should be ignored */
-    footerSections: ['Explorer', 'Explore', 'Entreprise', 'Company', 'Partenaires', 'Partners', 'Voyages', 'Trips', 'Sites internationaux', 'International sites'],
-  },
 } as const;

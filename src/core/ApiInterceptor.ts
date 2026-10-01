@@ -167,9 +167,10 @@ export class ApiInterceptor {
     try {
       const url = new URL(resolved.url);
       url.searchParams.set('filters', `${SUPPLIERS_FILTER_PREFIX}${includedIds.join(',')}`);
+      url.searchParams.set('sort_type', 'CHEAPEST_SORT');
 
       Logger.info(
-        `ApiInterceptor: passing ${includedIds.length} included supplier(s).`,
+        `ApiInterceptor: passing ${includedIds.length} included supplier(s), sort=CHEAPEST_SORT.`,
       );
 
       // Rebuild args with modified URL

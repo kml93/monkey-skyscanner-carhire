@@ -16,7 +16,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ApiInterceptor } from '@/core/ApiInterceptor';
-import { FilterEngine } from '@/core/FilterEngine';
 import { DEFAULT_AUTO_CONFIG, type AutoConfig, type Supplier, type SupplierEntry, type SupplierStatus } from '@/core/types';
 import { UIBootController } from '@/core/UIBootController';
 import { AutoConfigTab } from './tabs/AutoConfigTab';
@@ -113,11 +112,7 @@ export function Dashboard({ open, onClose, defaultTab, onTabChange, suppliers, s
     onCommit(draftConfig, draftSuppliers);
 
     if (draftConfig.apiFilter) {
-      // Stealth mode: ensure interceptor is installed before re-fetch
-      // so the sort toggle API call is intercepted with updated data
       ApiInterceptor.install();
-    } else {
-      await FilterEngine.apply();
     }
 
     await UIBootController.triggerRefetch();

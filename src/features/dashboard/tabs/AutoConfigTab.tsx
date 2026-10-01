@@ -5,8 +5,6 @@
  */
 
 import {
-  ArrowsDownUp,
-  FolderSimpleMinus,
   LockSimple,
   ShieldCheck,
 } from '@phosphor-icons/react';
@@ -28,25 +26,6 @@ export function AutoConfigTab({ config, onUpdate, onReset }: AutoConfigTabProps)
         These settings apply automatically on every page load.
       </p>
 
-      <ConfigRow
-        icon={<ArrowsDownUp weight="duotone" className="h-4 w-4" />}
-        label="Auto Sort"
-        description={`Force "Cheapest" sort on load`}
-        checked={config.sortCheapest}
-        onChange={(v) => onUpdate({ sortCheapest: v })}
-      />
-
-      <Separator className="my-1" />
-
-      <ConfigRow
-        icon={<FolderSimpleMinus weight="duotone" className="h-4 w-4" />}
-        label="Accordion Folding"
-        description="Close all filters except Providers"
-        checked={config.foldAccordions}
-        onChange={(v) => onUpdate({ foldAccordions: v })}
-      />
-
-      <Separator className="my-1" />
 
       <ConfigRow
         icon={<LockSimple weight="duotone" className="h-4 w-4" />}

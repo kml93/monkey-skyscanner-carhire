@@ -7,7 +7,7 @@
  *
  * Architecture:
  *   main.tsx creates a dedicated <div> inside the Shadow Root,
- *   then provides it here via ShadowPortalProvider.
+ *   then provides it via ShadowPortalProvider.
  *   Portal-based components consume it automatically.
  */
 
@@ -15,13 +15,13 @@ import { createContext, useContext } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type ShadowPortalContextValue = {
+export type ShadowPortalContextValue = {
   container: HTMLElement | null;
 };
 
 // ── Context ────────────────────────────────────────────────────────────────
 
-const ShadowPortalContext = createContext<ShadowPortalContextValue>({
+export const ShadowPortalContext = createContext<ShadowPortalContextValue>({
   container: null,
 });
 
@@ -33,20 +33,4 @@ const ShadowPortalContext = createContext<ShadowPortalContextValue>({
  */
 export function useShadowPortalContainer(): HTMLElement | null {
   return useContext(ShadowPortalContext).container;
-}
-
-// ── Provider ───────────────────────────────────────────────────────────────
-
-export function ShadowPortalProvider({
-  container,
-  children,
-}: {
-  container: HTMLElement | null;
-  children: React.ReactNode;
-}) {
-  return (
-    <ShadowPortalContext.Provider value={{ container }}>
-      {children}
-    </ShadowPortalContext.Provider>
-  );
 }

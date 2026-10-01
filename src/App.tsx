@@ -12,10 +12,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ApiInterceptor } from '@/core/ApiInterceptor';
-import { DomObserver } from '@/core/DomObserver';
 import { ScrollInterceptor } from '@/core/ScrollInterceptor';
 import { SupplierRegistry } from '@/core/SupplierRegistry';
-import { UIBootController } from '@/core/UIBootController';
 import { Dashboard } from '@/features/dashboard/Dashboard';
 import { FloatingIndicator } from '@/features/floating-indicator/FloatingIndicator';
 import { FloatingMenu } from '@/features/floating-indicator/FloatingMenu';
@@ -55,28 +53,6 @@ const App = ({ shadowHost }: { shadowHost: HTMLElement | null }) => {
     // Initialize supplier registry from persisted storage
     SupplierRegistry.initialize();
 
-    // Run boot sequence with new callback logic
-    UIBootController.boot(config, () => {
-      refreshSuppliers();
-    });
-
-    // Watch for SPA navigation (URL changes) and re-boot
-    DomObserver.start();
-    const unsub = DomObserver.onNavigate(() => {
-      // Always ensure interceptor is installed for response capture
-      ApiInterceptor.install();
-
-      UIBootController.reset();
-      UIBootController.boot(config, () => {
-        refreshSuppliers();
-      });
-    });
-
-    return () => {
-      unsub();
-      DomObserver.stop();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Handlers ─────────────────────────────────────────────────────────
