@@ -5,6 +5,10 @@ import { defineConfig } from 'vite';
 import monkey from 'vite-plugin-monkey';
 
 export default defineConfig({
+  server: {
+    port: 5174,
+    strictPort: true,
+  },
   plugins: [
     react(),
     tailwindcss(),
