@@ -7,7 +7,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./resources/js/*"],
+      "@app/*": ["./app/*"],
+      "@config/*": ["./config/*"]
     }
   }
 }

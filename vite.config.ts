@@ -9,11 +9,14 @@ export default defineConfig({
     port: 5174,
     strictPort: true,
   },
+  build: {
+    minify: 'esbuild',
+  },
   plugins: [
     react(),
     tailwindcss(),
     monkey({
-      entry: 'src/main.tsx',
+      entry: 'bootstrap/app.ts',
       server: {
         mountGmApi: true,
       },
@@ -33,7 +36,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(__dirname, './resources/js'),
+      '@app': path.resolve(__dirname, './app'),
+      '@config': path.resolve(__dirname, './config'),
     },
   },
 });
